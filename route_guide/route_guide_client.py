@@ -106,12 +106,12 @@ def run():
         stub = route_guide_pb2_grpc.RouteGuideStub(channel)
         print("-------------- GetFeature --------------")
         guide_get_feature(stub)
-        #print("-------------- ListFeatures --------------")
-        #guide_list_features(stub)
-        #print("-------------- RecordRoute --------------")
-        #guide_record_route(stub)
-        #print("-------------- RouteChat --------------")
-        #guide_route_chat(stub)
+        print("-------------- ListFeatures --------------")
+        guide_list_features(stub)
+        print("-------------- RecordRoute --------------")
+        guide_record_route(stub)
+        print("-------------- RouteChat --------------")
+        guide_route_chat(stub)
 
 
 if __name__ == '__main__':

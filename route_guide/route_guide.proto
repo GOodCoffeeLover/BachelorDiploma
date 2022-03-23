@@ -85,6 +85,9 @@ message Feature {
 
   // The point where the feature is detected.
   Point location = 2;
+
+  // Guid
+  string GUID = 3;
 }
 
 // A RouteNote is a message sent while at a given point.
@@ -94,6 +97,9 @@ message RouteNote {
 
   // The message to be sent.
   string message = 2;
+
+  // Guid
+  string GUID = 3;
 }
 
 // A RouteSummary is received in response to a RecordRoute rpc.
@@ -113,4 +119,7 @@ message RouteSummary {
 
   // The duration of the traversal in seconds.
   int32 elapsed_time = 4;
+
+  // Guid
+  string GUID = 5;
 }

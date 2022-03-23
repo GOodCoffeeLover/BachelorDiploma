@@ -1,54 +1,64 @@
 import grpc
+import grpc_interceptor
+
 import types
 
-# for server check https://realpython.com/python-microservices-grpc/#interceptors
-
-def my_decorator(decorated_function):
-  def wrapper(*args, **kwargs):
-    print('\n==============================\n\nmagic begins\n')
-    
-    if hasattr(decorated_function, '__name__'):
-      print('Call of {}\n'.format(decorated_function.__name__))
-
-    print('with args :')
-    for arg in args:
-      print(repr(arg))
-    
-    print('\nand kwargs :')
-    for name, arg in zip(kwargs, kwargs.values()):
-      print(f'{name!r} = {arg!r}')
-
-    value = decorated_function(*args, **kwargs)
-    print("magic ends\n\n==============================\n\n")
-    return value
-
-  return wrapper
-
-
-
-@my_decorator
-def say_something():
-  print("wheeee!")
-
-
-
+# for server check https://realpython.com/python-microservices-grpc/#interceptors \/checked
 def main():
-  say_something()
+  pass
+
+
+
+def get_first(generator):
+  
+  first = next(generator)
+
+  def put_back(_first, _generator):
+    yield _first
+    for elem in _generator:
+      yield elem
+
+  return first, put_back(first, generator)
 
 def _set_GUID(request_or_iterator, guid):
-  if(isinstance(request_or_iterator, types.GeneratorType)):
-    print('ITERATOR')
+  if( isinstance(request_or_iterator, types.GeneratorType)):
+    
+    def put_back(_first, _generator):
+      yield _first
+      for elem in _generator:
+        yield elem
+
+    first_request = next(request_or_iterator)
+    first_request.GUID = guid
+    request_or_iterator = put_back(first_request, request_or_iterator)
+
   else:
-    print('NOT ITERATOR')
+   
     request_or_iterator.GUID = guid
+  
+  return request_or_iterator
 
 
 def _get_GUID(request_or_iterator):
-  if( isinstance(request_or_iterator, types.GeneratorType)):
-    print('ITERATOR')
+  guid = ''
+  print(request_or_iterator.__class__)
+  if(isinstance(request_or_iterator, grpc._server._RequestIterator)):
+    
+    def put_back(_first, _generator):
+      yield _first
+      for elem in _generator:
+        yield elem
+
+    first_request = next(request_or_iterator)
+    guid = first_request.GUID
+    request_or_iterator = put_back(first_request, request_or_iterator)
+
   else:
-    print('NOT ITERATOR')
-    print(request_or_iterator.GUID)
+    
+    guid = request_or_iterator.GUID
+
+
+  return guid, request_or_iterator
 
 
 # class ServiceStub():
@@ -77,11 +87,11 @@ class MyClientInterceptor(grpc.UnaryUnaryClientInterceptor,
     print(f'call of : {client_call_details.method}\n\n')
     
     #print(f'request_or_iterator : {request_or_iterator.__class__} has : {dir(request_or_iterator)}\n')
-    print(f'request_or_iterator.__class__ : {request_or_iterator.__class__}\n')
+    #print(f'request_or_iterator.__class__ : {request_or_iterator.__class__}\n')
     
     print(f'with request_or_iterator: {request_or_iterator!r}')
     
-    _set_GUID(request_or_iterator, 'MY_VERY_UNIQUE_GUID')
+    request_or_iterator = _set_GUID(request_or_iterator, 'MY_VERY_UNIQUE_GUID')
 
     response = continuation(client_call_details, request_or_iterator)
     print(f'call of : {client_call_details.method} executed\n')
@@ -108,26 +118,23 @@ class MyClientInterceptor(grpc.UnaryUnaryClientInterceptor,
 #                       interceptors = interceptors)
 
 
-class MyServerInterceptor(grpc.ServerInterceptor):
+class MyServerInterceptor(grpc_interceptor.ServerInterceptor):
   def __init__(self):
     pass
 
-  def intercept_service(self, continuation, handler_call_details):
-    print('='*60)
-    print(f'\n\nhandler_call_details methods : \n{dir(handler_call_details)}\n\n')
+  def intercept(self, method, request, context, method_name):
     # print(repr(handler_call_details))
     # print(handler_call_details._fields)
     # print(handler_call_details.GUID)
 
-    for key, value in handler_call_details.invocation_metadata :
-      print(f'{key} = {value}')
 
-    print('='*60)
+    print(f'get method {method_name}')
 
-    print(f'get method {handler_call_details.method}')
 
-    result = continuation(handler_call_details)
-    print(f'did method {handler_call_details.method}')
+    guid, request_or_iterator = _get_GUID(request)
+    print(guid)
+    result = method(request, context)
+    print(f'did method {method_name}')
     print('-'*50)
     return result
 

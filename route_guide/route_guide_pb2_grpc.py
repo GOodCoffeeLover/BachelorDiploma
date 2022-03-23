@@ -18,7 +18,7 @@ class RouteGuideStub(object):
         import my_decorator
         my_intercepotor = my_decorator.MyClientInterceptor()
         channel = grpc.intercept_channel(channel, my_intercepotor)
-
+        
         self.GetFeature = channel.unary_unary(
                 '/routeguide.RouteGuide/GetFeature',
                 request_serializer=route__guide__pb2.Point.SerializeToString,
