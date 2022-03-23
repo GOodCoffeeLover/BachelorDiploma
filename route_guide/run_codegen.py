@@ -17,8 +17,8 @@ from grpc_tools import protoc
 
 protoc.main((
     '',
-    '-I../../protos',
+    '-I.',
     '--python_out=.',
     '--grpc_python_out=.',
-    './protos/route_guide.proto',
+    './route_guide.proto',
 ))
