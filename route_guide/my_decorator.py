@@ -112,10 +112,19 @@ class MyClientInterceptor(grpc.UnaryUnaryClientInterceptor,
 
 
 
-# run():
-# interceptors = [my_decorator.MyServerInterceptor()]
-# server = grpc.server( futures.ThreadPoolExecutor(max_workers=10), 
-#                       interceptors = interceptors)
+# def add_RouteGuideServicer_to_server(servicer, server):
+    
+#   import my_decorator
+
+#   if ( server._state.interceptor_pipeline is None ) :
+#     from grpc import _interceptor
+#     server._state.interceptor_pipeline = _interceptor.service_pipeline([my_decorator.MyServerInterceptor()])
+  
+#   else:
+#     list_interceptors = list(server._state.interceptor_pipeline.interceptors)
+#     list_interceptors.append(my_decorator.MyServerInterceptor())
+#     server._state.interceptor_pipeline.interceptors = tuple(list_interceptors)
+
 
 
 class MyServerInterceptor(grpc_interceptor.ServerInterceptor):

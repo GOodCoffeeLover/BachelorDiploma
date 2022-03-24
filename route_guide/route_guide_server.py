@@ -63,7 +63,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
     def __init__(self):
         self.db = route_guide_resources.read_route_guide_database()
-    #@my_decorator.my_decorator
+    
     def GetFeature(self, request, context):
         feature = get_feature(self.db, request)
         if feature is None:
@@ -71,7 +71,6 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         else:
             return feature
 
-    #@my_decorator.my_decorator
     def ListFeatures(self, request, context):
         left = min(request.lo.longitude, request.hi.longitude)
         right = max(request.lo.longitude, request.hi.longitude)
@@ -84,7 +83,6 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
                     feature.location.latitude <= top):
                 yield feature
 
-    #@my_decorator.my_decorator
     def RecordRoute(self, request_iterator, context):
         point_count = 0
         feature_count = 0
@@ -106,7 +104,6 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
                                             distance=int(distance),
                                             elapsed_time=int(elapsed_time))
 
-    #@my_decorator.my_decorator
     def RouteChat(self, request_iterator, context):
         prev_notes = []
         for new_note in request_iterator:
@@ -117,9 +114,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
 
 def serve():
-    interceptors = [my_decorator.MyServerInterceptor()]
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), 
-                            interceptors = interceptors)
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     route_guide_pb2_grpc.add_RouteGuideServicer_to_server(
         RouteGuideServicer(), server)
     server.add_insecure_port('[::]:50051')
