@@ -65,6 +65,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         self.db = route_guide_resources.read_route_guide_database()
     
     def GetFeature(self, request, context):
+        # raise NameError("Test Error")
         feature = get_feature(self.db, request)
         if feature is None:
             return route_guide_pb2.Feature(name="", location=request)
@@ -123,8 +124,8 @@ def serve():
     def handle_sigterm(*_):
         print()
         print("Received shutdown signal")
-        all_rpcs_done_event = server.stop(30)
-        all_rpcs_done_event.wait(30)
+        all_rpcs_done_event = server.stop(10)
+        all_rpcs_done_event.wait(10)
         print("Shut down gracefully")
 
 

@@ -95,8 +95,8 @@ def add_RouteGuideServicer_to_server(servicer, server):
     import my_decorator
 
     if ( server._state.interceptor_pipeline is None ) :
-        from grpc import _interceptor
-        server._state.interceptor_pipeline = _interceptor.service_pipeline([my_decorator.MyServerInterceptor()])
+        #from grpc import _interceptor
+        server._state.interceptor_pipeline = grpc._interceptor.service_pipeline([my_decorator.MyServerInterceptor()])
     
     else:
         list_interceptors = list(server._state.interceptor_pipeline.interceptors)

@@ -4,21 +4,7 @@ import grpc_interceptor
 import types
 
 # for server check https://realpython.com/python-microservices-grpc/#interceptors \/checked
-def main():
-  pass
 
-
-
-def get_first(generator):
-  
-  first = next(generator)
-
-  def put_back(_first, _generator):
-    yield _first
-    for elem in _generator:
-      yield elem
-
-  return first, put_back(first, generator)
 
 def _set_GUID(request_or_iterator, guid):
   if( isinstance(request_or_iterator, types.GeneratorType)):
@@ -41,7 +27,7 @@ def _set_GUID(request_or_iterator, guid):
 
 def _get_GUID(request_or_iterator):
   guid = ''
-  print(request_or_iterator.__class__)
+  
   if(isinstance(request_or_iterator, grpc._server._RequestIterator)):
     
     def put_back(_first, _generator):
@@ -50,7 +36,10 @@ def _get_GUID(request_or_iterator):
         yield elem
 
     first_request = next(request_or_iterator)
+    
     guid = first_request.GUID
+    first_request.GUID = ''
+    
     request_or_iterator = put_back(first_request, request_or_iterator)
 
   else:
@@ -79,23 +68,32 @@ class MyClientInterceptor(grpc.UnaryUnaryClientInterceptor,
 
   def intercept(self, continuation, client_call_details, request_or_iterator):
     
-    # print(f'continuation : {continuation.__class__} has : {dir(continuation)}\n')
-
-    # print(f'client_call_details : {client_call_details.__class__} has : {dir(client_call_details)}\n')
-
-
     print(f'call of : {client_call_details.method}\n\n')
     
-    #print(f'request_or_iterator : {request_or_iterator.__class__} has : {dir(request_or_iterator)}\n')
-    #print(f'request_or_iterator.__class__ : {request_or_iterator.__class__}\n')
-    
     print(f'with request_or_iterator: {request_or_iterator!r}')
-    
+    succ = 'Fail'
     request_or_iterator = _set_GUID(request_or_iterator, 'MY_VERY_UNIQUE_GUID')
-
-    response = continuation(client_call_details, request_or_iterator)
-    print(f'call of : {client_call_details.method} executed\n')
+    try:
+      response = continuation(client_call_details, request_or_iterator)
+      print(response.__class__)
+      print(dir(response))
+      print(f'response.exception = {response.exception()}')
+      print(f'response.code = {response.code()}')
+      # print(f'response.code = {response.code}')
+      succ = 'success'
+    except grpc.RpcError as exception:
+      print(f'Error : {exception!r}')
+      raise 
+    except Exception as exception:
+      print(f'exception {exception!r}')
+      raise 
+    except:
+      print('Errrrrrrrrrrrrrrrrrrrrrrrrrrrrrror')
+      raise 
+    finally:  
+      print(f'call of : {client_call_details.method} executed with {succ}\n')
     return response
+    
 
 
   def intercept_unary_unary(self, continuation, client_call_details, request):
@@ -117,8 +115,7 @@ class MyClientInterceptor(grpc.UnaryUnaryClientInterceptor,
 #   import my_decorator
 
 #   if ( server._state.interceptor_pipeline is None ) :
-#     from grpc import _interceptor
-#     server._state.interceptor_pipeline = _interceptor.service_pipeline([my_decorator.MyServerInterceptor()])
+#     server._state.interceptor_pipeline = grpc._interceptor.service_pipeline([my_decorator.MyServerInterceptor()])
   
 #   else:
 #     list_interceptors = list(server._state.interceptor_pipeline.interceptors)
@@ -132,22 +129,22 @@ class MyServerInterceptor(grpc_interceptor.ServerInterceptor):
     pass
 
   def intercept(self, method, request, context, method_name):
-    # print(repr(handler_call_details))
-    # print(handler_call_details._fields)
-    # print(handler_call_details.GUID)
-
 
     print(f'get method {method_name}')
 
-
     guid, request_or_iterator = _get_GUID(request)
     print(guid)
-    result = method(request, context)
-    print(f'did method {method_name}')
-    print('-'*50)
-    return result
+    try:
+      response = method(request, context)
+    except Exception as exception:
+      print(f'Error : {exception!r} [{exception.__class__}]')
+      #context.abort(grpc.StatusCode.UNKNOWN,f'Error : {exception!r}')
+      context.set_code(grpc.StatusCode.UNKNOWN)
+      context.set_details(f'Error : {exception!r}')
+      raise 
+    finally:
+      print(f'did method {method_name}')
+      print('-'*50)
+    return response
 
 
-
-if __name__ == '__main__':
-  main()
