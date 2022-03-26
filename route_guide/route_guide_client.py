@@ -103,17 +103,23 @@ def run():
     # used in circumstances in which the with statement does not fit the needs
     # of the code.
     with grpc.insecure_channel('localhost:50051') as channel:
-        stub = route_guide_pb2_grpc.RouteGuideStub(channel)
-        print("-------------- GetFeature --------------")
-        guide_get_feature(stub)
-        print("-------------- ListFeatures --------------")
-        guide_list_features(stub)
-        print("-------------- RecordRoute --------------")
-        guide_record_route(stub)
-        print("-------------- RouteChat --------------")
-        guide_route_chat(stub)
+        try:
+            stub = route_guide_pb2_grpc.RouteGuideStub(channel)
+            print("-------------- GetFeature --------------")
+            guide_get_feature(stub)
+            print("-------------- ListFeatures --------------")
+            guide_list_features(stub)
+            print("-------------- RecordRoute --------------")
+            guide_record_route(stub)
+            print("-------------- RouteChat --------------")
+            guide_route_chat(stub)
+        except Exception as e:
+            print(f'Error is :{e!r}')
 
 
 if __name__ == '__main__':
     logging.basicConfig()
     run()
+    import time
+    # time.sleep(0.000001)
+    print('Finished')

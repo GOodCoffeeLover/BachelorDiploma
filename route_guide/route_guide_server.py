@@ -23,7 +23,7 @@ import grpc
 import route_guide_pb2
 import route_guide_pb2_grpc
 import route_guide_resources
-import my_decorator
+
 
 
 
@@ -65,7 +65,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         self.db = route_guide_resources.read_route_guide_database()
     
     def GetFeature(self, request, context):
-        # raise NameError("Test Error")
+        raise NameError("Test Error")
         feature = get_feature(self.db, request)
         if feature is None:
             return route_guide_pb2.Feature(name="", location=request)
@@ -115,23 +115,28 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
 
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    route_guide_pb2_grpc.add_RouteGuideServicer_to_server(
-        RouteGuideServicer(), server)
-    server.add_insecure_port('[::]:50051')
-    server.start()
-    
-    def handle_sigterm(*_):
-        print()
-        print("Received shutdown signal")
-        all_rpcs_done_event = server.stop(10)
-        all_rpcs_done_event.wait(10)
-        print("Shut down gracefully")
+    count = 0
+    try:
+        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        route_guide_pb2_grpc.add_RouteGuideServicer_to_server(
+            RouteGuideServicer(), server)
+        server.add_insecure_port('[::]:50051')
+        server.start()
+
+        def handle_sigterm(*_):
+            print()
+            print("Received shutdown signal")
+            all_rpcs_done_event = server.stop(10)
+            all_rpcs_done_event.wait(10)
+            print("Shut down gracefully")
 
 
-    signal(SIGTERM, handle_sigterm)
-    signal(SIGINT, handle_sigterm)
-    server.wait_for_termination()
+        signal(SIGTERM, handle_sigterm)
+        signal(SIGINT, handle_sigterm)
+        server.wait_for_termination()
+    except Exception as e:
+        count += 1
+        print(f'Er is {e!r} count: {count}')
 
 
 if __name__ == '__main__':
