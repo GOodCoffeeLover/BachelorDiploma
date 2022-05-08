@@ -102,7 +102,7 @@ def run():
     # NOTE(gRPC Python Team): .close() is possible on a channel and should be
     # used in circumstances in which the with statement does not fit the needs
     # of the code.
-    with grpc.insecure_channel('localhost:50051') as channel:
+    with grpc.insecure_channel('[::]:50051') as channel:
         try:
             stub = route_guide_pb2_grpc.RouteGuideStub(channel)
             print("-------------- GetFeature --------------")
@@ -121,5 +121,5 @@ if __name__ == '__main__':
     logging.basicConfig()
     run()
     import time
-    # time.sleep(0.000001)
+    time.sleep(0.000001)
     print('Finished')

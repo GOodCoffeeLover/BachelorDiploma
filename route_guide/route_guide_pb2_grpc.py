@@ -16,7 +16,7 @@ class RouteGuideStub(object):
             channel: A grpc.Channel.
         """
         import grpc_tracer
-        my_intercepotor = grpc_tracer.MyClientInterceptor()
+        my_intercepotor = grpc_tracer.ClientTracer()
         channel = grpc.intercept_channel(channel, my_intercepotor)
         
         self.GetFeature = channel.unary_unary(
@@ -96,11 +96,11 @@ def add_RouteGuideServicer_to_server(servicer, server):
 
     if ( server._state.interceptor_pipeline is None ) :
         #from grpc import _interceptor
-        server._state.interceptor_pipeline = grpc._interceptor.service_pipeline([grpc_tracer.MyServerInterceptor()])
+        server._state.interceptor_pipeline = grpc._interceptor.service_pipeline([grpc_tracer.ServerTracer()])
     
     else:
         list_interceptors = list(server._state.interceptor_pipeline.interceptors)
-        list_interceptors.append(grpc_tracer.MyServerInterceptor())
+        list_interceptors.append(grpc_tracer.ServerTracer())
         server._state.interceptor_pipeline.interceptors = tuple(list_interceptors)
 
     rpc_method_handlers = {

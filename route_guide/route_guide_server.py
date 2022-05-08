@@ -25,9 +25,6 @@ import route_guide_pb2_grpc
 import route_guide_resources
 
 
-
-
-
 def get_feature(feature_db, point):
     """Returns Feature at given location or None."""
     for feature in feature_db:
@@ -63,9 +60,9 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 
     def __init__(self):
         self.db = route_guide_resources.read_route_guide_database()
-    
+
     def GetFeature(self, request, context):
-        raise NameError("Test Error")
+        # raise NameError("Test Error")
         feature = get_feature(self.db, request)
         if feature is None:
             return route_guide_pb2.Feature(name="", location=request)
@@ -78,10 +75,8 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
         top = max(request.lo.latitude, request.hi.latitude)
         bottom = min(request.lo.latitude, request.hi.latitude)
         for feature in self.db:
-            if (feature.location.longitude >= left and
-                    feature.location.longitude <= right and
-                    feature.location.latitude >= bottom and
-                    feature.location.latitude <= top):
+            if (left <= feature.location.longitude <= right and
+                    bottom <= feature.location.latitude <= top):
                 yield feature
 
     def RecordRoute(self, request_iterator, context):
@@ -117,7 +112,7 @@ class RouteGuideServicer(route_guide_pb2_grpc.RouteGuideServicer):
 def serve():
     count = 0
     try:
-        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        server = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
         route_guide_pb2_grpc.add_RouteGuideServicer_to_server(
             RouteGuideServicer(), server)
         server.add_insecure_port('[::]:50051')
@@ -129,7 +124,6 @@ def serve():
             all_rpcs_done_event = server.stop(10)
             all_rpcs_done_event.wait(10)
             print("Shut down gracefully")
-
 
         signal(SIGTERM, handle_sigterm)
         signal(SIGINT, handle_sigterm)
