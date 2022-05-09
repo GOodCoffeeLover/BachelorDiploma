@@ -12,6 +12,7 @@ import datetime
 import socket
 import json
 import sys
+import __main__
 
 from grpc_tools import protoc
 
@@ -111,7 +112,7 @@ class ClientTracer(grpc.UnaryUnaryClientInterceptor,
             status = response.code()
             msg = {
                 "hostname": socket.gethostname(),
-                "sqript": __file__,
+                "sqript": __main__.__file__,
                 "type": "gRPC-client-call",
                 "method": str(client_call_details.method),
                 "function_path": "",
@@ -188,7 +189,7 @@ class ServerTracer(grpc_interceptor.ServerInterceptor):
             status = context.code()
             msg = {
                 "hostname": socket.gethostname(),
-                "sqript": __file__,
+                "sqript": __main__.__file__,
                 "type": "gRPC-server-call",
                 "method": str(method_name),
                 "function_path": "",
