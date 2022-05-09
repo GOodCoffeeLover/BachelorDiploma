@@ -1,4 +1,6 @@
+import multiprocessing
 import re
+import signal
 
 import grpc
 import grpc_interceptor
@@ -9,10 +11,13 @@ import inspect
 import datetime
 import socket
 import json
+import sys
 
 from grpc_tools import protoc
 
 # for server check https://realpython.com/python-microservices-grpc/#interceptors \/checked
+
+MAX_QUEUE_SIZE = 100
 
 
 def _set_GUID(request_or_iterator, guid):
@@ -58,12 +63,30 @@ def _get_GUID(request_or_iterator):
     return guid, request_or_iterator
 
 
-# class ServiceStub():
-# def __init__(self):
+def send(list_of_msgs):
+    import sys
+    print(json.dumps(list_of_msgs, indent=2), file=sys.stderr)
 
-# import grpc_tracer
-# my_intercepotor = grpc_tracer.ClientTracer()
-# channel = grpc.intercept_channel(channel, my_intercepotor)
+
+def sink_sender(queue):
+
+    list_of_msgs = []
+
+    def handle_term_or_kill(*_):
+        send(list_of_msgs)
+        sys.exit()
+
+    # signal.signal(signal.SIGKILL, handle_term_or_kill)
+    signal.signal(signal.SIGTERM, handle_term_or_kill)
+
+    while True:
+        elem = queue.get()
+
+        list_of_msgs.append(elem)
+
+        if len(list_of_msgs) >= MAX_QUEUE_SIZE / 10:
+            send(list_of_msgs)
+            list_of_msgs = []
 
 
 class ClientTracer(grpc.UnaryUnaryClientInterceptor,
@@ -71,27 +94,33 @@ class ClientTracer(grpc.UnaryUnaryClientInterceptor,
                    grpc.UnaryStreamClientInterceptor,
                    grpc.StreamStreamClientInterceptor):
     def __init__(self):
-        pass
+        self._queue = multiprocessing.Queue(MAX_QUEUE_SIZE)
+        self._process = multiprocessing.Process(target=sink_sender, args=(self._queue,), daemon=True)
+        self._process.start()
 
-    def intercept(self, continuation, client_call_details, argument):
+    def __del__(self):
+        self._process.terminate()
+        self._process.join()
+
+    def intercept(self, continuation, client_call_details, arg):
         guid = str(uuid.uuid4())
-        argument = _set_GUID(argument, guid)
+        argument = _set_GUID(arg, guid)
 
         def send_info(response):
             time1 = datetime.datetime.now()
             status = response.code()
             msg = {
-                "hostname"  : socket.gethostname(),
-                "sqript"    : __file__,
-                "type"      : "gRPC-client-call",
-                "method"    : str(client_call_details.method),
-                "function_path" : "",
-                "argument"  : str(argument),
-                "GUID"      : guid,
-                "time0"     : str(time0),
-                "time1"     : str(time1),
-                "status"    : str(status).split(sep='.')[1],
-                "details"   : ""
+                "hostname": socket.gethostname(),
+                "sqript": __file__,
+                "type": "gRPC-client-call",
+                "method": str(client_call_details.method),
+                "function_path": "",
+                "argument": str(arg),
+                "GUID": guid,
+                "time0": str(time0),
+                "time1": str(time1),
+                "status": str(status).split(sep='.')[1],
+                "details": ""
             }
 
             function_path = ''
@@ -104,10 +133,7 @@ class ClientTracer(grpc.UnaryUnaryClientInterceptor,
             if status is not grpc.StatusCode.OK:
                 msg["details"] = str(response.exception().details())
             # send to proc_sender
-            print('\\' * 50)
-            import sys
-            print(json.dumps(msg, indent=2), file=sys.stderr)
-            print('/' * 50)
+            self._queue.put_nowait(msg)
 
         time0 = datetime.datetime.now()
         response = continuation(client_call_details, argument)
@@ -143,8 +169,15 @@ class ClientTracer(grpc.UnaryUnaryClientInterceptor,
 
 
 class ServerTracer(grpc_interceptor.ServerInterceptor):
+
     def __init__(self):
-        pass
+        self._queue = multiprocessing.Queue(MAX_QUEUE_SIZE)
+        self._process = multiprocessing.Process(target=sink_sender, args=(self._queue,), daemon=True)
+        self._process.start()
+
+    def __del__(self):
+        self._process.terminate()
+        self._process.join()
 
     def intercept(self, method, request, context, method_name):
 
@@ -177,12 +210,7 @@ class ServerTracer(grpc_interceptor.ServerInterceptor):
             if status is not grpc.StatusCode.OK:
                 msg["details"] = str(context.details())
             # send to proc_sender
-            print('\\' * 50)
-            import sys
-            print(json.dumps(msg, indent=2), file=sys.stderr)
-            print('/' * 50)
-
-
+            self._queue.put_nowait(msg)
 
         context.add_callback(send_info)
         try:
@@ -196,15 +224,15 @@ class ServerTracer(grpc_interceptor.ServerInterceptor):
                 context.set_details(repr(e))
             raise e
 
-
-
         return response
+
 
 def _join_back(list_of_text, list_of_mathces):
     res = list_of_text[0]
     for match, text in zip(list_of_mathces, list_of_text[1:]):
         res += match + text
     return res
+
 
 def _add_guid_to_proto(file_name):
     # data = ''
@@ -258,7 +286,6 @@ def _insert_interceptors(file_name):
     client_re = 'class \w+Stub\(?\w*\)?:[\s\S]+?def\s__init__\(.*\):\s+"""[\s\S]+?"""\s*\n'
     server_re = 'def \w+Servicer_to_server\(.*\):\n'
 
-    
     with open(file_name, 'r') as file:
         data = file.read()
 
@@ -278,8 +305,6 @@ def _insert_interceptors(file_name):
         file.write(data)
 
 
-
-
 def proto_gen(command_arguments):
     files = []
 
@@ -289,9 +314,7 @@ def proto_gen(command_arguments):
         files.append(arg)
         _add_guid_to_proto(arg)
 
-
     protoc.main(command_arguments)
 
-    for file in [f[:-6]+'_pb2_grpc.py' for f in files]:
+    for file in [f[:-6] + '_pb2_grpc.py' for f in files]:
         _insert_interceptors(file)
-

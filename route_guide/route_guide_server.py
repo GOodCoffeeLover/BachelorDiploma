@@ -125,7 +125,7 @@ def serve():
             all_rpcs_done_event.wait(10)
             print("Shut down gracefully")
 
-        signal(SIGTERM, handle_sigterm)
+        # signal(SIGTERM, handle_sigterm)
         signal(SIGINT, handle_sigterm)
         server.wait_for_termination()
     except Exception as e:
