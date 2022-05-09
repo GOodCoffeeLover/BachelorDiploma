@@ -59,8 +59,9 @@ service RouteGuide {
 message Point {
   int32 latitude = 1;
   int32 longitude = 2;
-  // Guid
-  string GUID = 3;  
+
+  //GUID
+  string GUID = 3;
 }
 
 // A latitude-longitude rectangle, represented as two diagonally opposite
@@ -72,7 +73,7 @@ message Rectangle {
   // The other corner of the rectangle.
   Point hi = 2;
 
-  // Guid
+  //GUID
   string GUID = 3;
 }
 
@@ -86,7 +87,7 @@ message Feature {
   // The point where the feature is detected.
   Point location = 2;
 
-  // Guid
+  //GUID
   string GUID = 3;
 }
 
@@ -98,7 +99,7 @@ message RouteNote {
   // The message to be sent.
   string message = 2;
 
-  // Guid
+  //GUID
   string GUID = 3;
 }
 
@@ -120,6 +121,6 @@ message RouteSummary {
   // The duration of the traversal in seconds.
   int32 elapsed_time = 4;
 
-  // Guid
+  //GUID
   string GUID = 5;
 }

@@ -13,9 +13,19 @@
 # limitations under the License.
 """Runs protoc with the gRPC plugin to generate messages and gRPC stubs."""
 
-from grpc_tools import protoc
+# from grpc_tools import protoc
+#
+# protoc.main((
+#     '',
+#     '-I.',
+#     '--python_out=.',
+#     '--grpc_python_out=.',
+#     './route_guide.proto',
+# ))
 
-protoc.main((
+import grpc_tracer
+
+grpc_tracer.proto_gen((
     '',
     '-I.',
     '--python_out=.',
