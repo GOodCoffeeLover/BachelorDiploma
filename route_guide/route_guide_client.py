@@ -57,8 +57,8 @@ def guide_list_features(stub):
     features = stub.ListFeatures(rectangle)
 
     for feature in features:
-        #print("Feature called %s at %s" % (feature.name, feature.location))
-        pass
+        print("Feature called %s at %s" % (feature.name, feature.location))
+        # pass
 
 def generate_route(feature_list):
     for _ in range(0, 10):
@@ -103,23 +103,33 @@ def run():
     # used in circumstances in which the with statement does not fit the needs
     # of the code.
     with grpc.insecure_channel('[::]:50051') as channel:
+        stub = route_guide_pb2_grpc.RouteGuideStub(channel)
         try:
-            stub = route_guide_pb2_grpc.RouteGuideStub(channel)
             print("-------------- GetFeature --------------")
             guide_get_feature(stub)
+        except Exception as e:
+            print(f'Error is :{e!r}')
+        try:
             print("-------------- ListFeatures --------------")
             guide_list_features(stub)
+        except Exception as e:
+            print(f'Error is :{e!r}')
+        try:
             print("-------------- RecordRoute --------------")
             guide_record_route(stub)
+        except Exception as e:
+            print(f'Error is :{e!r}')
+        try:
             print("-------------- RouteChat --------------")
             guide_route_chat(stub)
         except Exception as e:
             print(f'Error is :{e!r}')
 
 
+
 if __name__ == '__main__':
     logging.basicConfig()
     run()
     import time
-    time.sleep(0.000001)
-    print('Finished')
+    time.sleep(0.01)
+    # print('Finished')
