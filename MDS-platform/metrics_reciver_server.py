@@ -1,4 +1,5 @@
 import signal
+import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 import json
@@ -46,14 +47,14 @@ def run(queue, server_class=SaverHTTPServer, handler_class=SaverHttpHandler):
     def finish(*_):
         httpd.server_close()
         print("server has been stopped")
+        sys.exit()
 
     signal.signal(signal.SIGTERM, finish)
+
     try:
         httpd.serve_forever()
     except Exception as e:
         print(e)
-    except KeyboardInterrupt:
-        print("Interrupted")
     finally:
         httpd.server_close()
 
@@ -62,21 +63,24 @@ def calculate_basic_metrics(msg, data = {}):
     for field in needed_fields:
         if field not in msg.keys():
             return {}
-
     if msg["GUID"] not in data:
+        msg["recv_time"] = datetime.datetime.now()
         data[msg["GUID"]] = msg
         return {}
 
     # calc metrics
     client_msg = {}
     server_msg = {}
-
+    recv_time = ''
     if msg["type"] == "gRPC-server-call":
         server_msg = msg
         client_msg = data[msg["GUID"]]
+        recv_time = client_msg["recv_time"]
     else:
         server_msg = data[msg["GUID"]]
         client_msg = msg
+        recv_time = server_msg["recv_time"]
+
     t0 = datetime.datetime.fromisoformat(client_msg["time0"])
     t1 = datetime.datetime.fromisoformat(server_msg["time0"])
     t2 = datetime.datetime.fromisoformat(server_msg["time1"])
@@ -84,6 +88,7 @@ def calculate_basic_metrics(msg, data = {}):
 
     info = {
         "type"                       : "grpc-call",
+        "recive_time"                : str(recv_time),
         "method"                     : client_msg["method"],
         "argument"                   : client_msg["argument"],
         "GUID"                       : msg["GUID"],
@@ -100,7 +105,7 @@ def calculate_basic_metrics(msg, data = {}):
 
     del data[msg["GUID"]]
 
-    print(json.dumps(info, indent=2))
+
     return info
 
 
@@ -110,14 +115,18 @@ def main():
     q = multiprocessing.Queue(MAX_SERVER_QUEUE_SIZE)
     proc = multiprocessing.Process(target=run, args=(q,), daemon=True)
     proc.start()
+
+    def finish(*_):
+        proc.terminate()
+        sys.exit()
+
+    signal.signal(signal.SIGINT, finish)
+    signal.signal(signal.SIGTERM, finish)
     try:
-        # calculate_metrics(q)
         while True:
-            calculate_basic_metrics(q.get())
+            print(json.dumps(calculate_basic_metrics(q.get()), indent=2))
     except Exception as e:
         print(e)
-    except KeyboardInterrupt:
-        print("Interrupted")
     finally:
         proc.terminate()
         proc.join()

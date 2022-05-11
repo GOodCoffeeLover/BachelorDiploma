@@ -1,1 +1,1 @@
-# BachelorDiploma
+# Bachelor Diploma
