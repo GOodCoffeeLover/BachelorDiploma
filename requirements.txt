@@ -1,0 +1,4 @@
+grpcio>=1.45.0
+grpc_interceptor>=0.14.1
+grpcio-tools>=1.46.0
+requests>=2.22.0
