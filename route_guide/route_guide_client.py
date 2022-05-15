@@ -105,8 +105,10 @@ def run():
     with grpc.insecure_channel('[::]:50051') as channel:
         stub = route_guide_pb2_grpc.RouteGuideStub(channel)
         import time, random
-        functions = [guide_get_feature, guide_list_features, guide_record_route, guide_route_chat]
-        while True:
+        functions = [guide_get_feature]#, guide_list_features, guide_record_route, guide_route_chat]
+        count = 5
+        while True and count > 0:
+            count -= 1
             func = random.choice(functions)
             print("-------------- {} --------------".format(func.__name__))
 
@@ -114,7 +116,7 @@ def run():
                 func(stub)
             except Exception as e:
                 print(f'Error is :{e!r}')
-            time.sleep(1)
+            time.sleep(0.1)
 
 
 if __name__ == '__main__':
@@ -122,7 +124,7 @@ if __name__ == '__main__':
         logging.basicConfig()
         run()
         import time
-        time.sleep(0.01)
+        # time.sleep(0.0001)
     except KeyboardInterrupt:
         print('Finished')
         

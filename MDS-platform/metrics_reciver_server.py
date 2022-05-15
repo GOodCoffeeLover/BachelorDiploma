@@ -59,63 +59,50 @@ def run(queue, server_class=SaverHTTPServer, handler_class=SaverHttpHandler):
         httpd.server_close()
 
 def calculate_basic_metrics(msg, data = {}):
-    needed_fields = ["GUID", "type", "time0", "time1", "hostname", "script", "status", "details", "method", "argument"]
-    for field in needed_fields:
-        if field not in msg.keys():
-            return {}
-    if msg["GUID"] not in data:
-        msg["recv_time"] = datetime.datetime.now()
-        data[msg["GUID"]] = msg
+    # needed_fields = ["GUID", "type", "time",  "hostname", "script", "status", "details", "method", "argument"]
+    # for field in needed_fields:
+    #     if field not in msg.keys():
+    #         return {}
+    guid = msg["GUID"]
+    if guid not in data:
+        data[guid] = {"recv_time" : str(datetime.datetime.now())}
+
+    data[guid][msg["type"]] = msg
+
+    if len(data[guid]) < 5:
         return {}
 
-    # calc metrics
-    client_msg = {}
-    server_msg = {}
-    recv_time = ''
-    if msg["type"] == "gRPC-server-call":
-        server_msg = msg
-        client_msg = data[msg["GUID"]]
-        recv_time = client_msg["recv_time"]
-    else:
-        server_msg = data[msg["GUID"]]
-        client_msg = msg
-        recv_time = server_msg["recv_time"]
+    info = data[guid]
 
-    t0 = datetime.datetime.fromisoformat(client_msg["time0"])
-    t1 = datetime.datetime.fromisoformat(server_msg["time0"])
-    t2 = datetime.datetime.fromisoformat(server_msg["time1"])
-    t3 = datetime.datetime.fromisoformat(client_msg["time1"])
+    t0 = datetime.datetime.fromisoformat(info["grpc-client-call-send"]["time"])
+    t1 = datetime.datetime.fromisoformat(info["grpc-server-call-receive"]["time"])
+    t2 = datetime.datetime.fromisoformat(info["grpc-server-call-send"]["time"])
+    t3 = datetime.datetime.fromisoformat(info["grpc-client-call-receive"]["time"])
 
-    info = {
+    inf = {
         "type"                       : "grpc-call",
-        "recive_time"                : str(recv_time),
-        "method"                     : client_msg["method"],
-        "argument"                   : client_msg["argument"],
-        "GUID"                       : msg["GUID"],
+        "recive_time"                : info["recv_time"],
+        "method"                     : info["grpc-client-call-receive"]["method"],
+        "argument"                   : info["grpc-client-call-receive"]["argument"],
+        "GUID"                       : guid,
         "client_side_time_in_seconds": float((t3 - t0).total_seconds()),
         "server_side_time_in_seconds": float((t2 - t1).total_seconds()),
         "network_time_in_seconds"    : float(((t3 - t0) - (t2 - t1)).total_seconds()),
-        "client_hostname"            : client_msg["hostname"],
-        "client_source"              : client_msg["script"],
-        "server_hostname"            : server_msg["hostname"],
-        "server_source"              : server_msg["script"],
-        "status"                     : server_msg["status"],
-        "details"                    : server_msg["details"]
+        "client_hostname"            : info["grpc-client-call-receive"]["hostname"],
+        "client_source"              : info["grpc-client-call-receive"]["script"],
+        "server_hostname"            : info["grpc-server-call-send"]["hostname"],
+        "server_source"              : info["grpc-server-call-send"]["script"],
+        "status"                     : info["grpc-server-call-send"]["status"],
+        "details"                    : info["grpc-server-call-send"]["details"]
     }
 
-    del data[msg["GUID"]]
-
-
-    return info
-
-
-
+    del data[guid]
+    return inf
 
 def main():
     q = multiprocessing.Queue(MAX_SERVER_QUEUE_SIZE)
     proc = multiprocessing.Process(target=run, args=(q,), daemon=True)
     proc.start()
-
     def finish(*_):
         proc.terminate()
         sys.exit()
@@ -124,7 +111,9 @@ def main():
     signal.signal(signal.SIGTERM, finish)
     try:
         while True:
-            print(json.dumps(calculate_basic_metrics(q.get()), indent=2))
+            res = calculate_basic_metrics(q.get())
+            if len(res) != 0:
+                print(json.dumps(res, indent=2))
     except Exception as e:
         print(e)
     finally:

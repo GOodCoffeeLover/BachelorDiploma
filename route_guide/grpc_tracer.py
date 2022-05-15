@@ -116,21 +116,22 @@ class ClientTracer(grpc.UnaryUnaryClientInterceptor,
     def intercept(self, continuation, client_call_details, arg):
         guid = str(uuid.uuid4())
         argument = _set_GUID(arg, guid)
-
-        def send_info(response):
-            time1 = datetime.datetime.now()
-            status = response.code()
+        event_type = None
+        def send_info(resp=None):
+            time = datetime.datetime.now()
+            status = ''
+            if not(resp is None):
+                status = resp.code()
             msg = {
                 "hostname": socket.gethostname(),
                 "script": __main__.__file__,
-                "type": "gRPC-client-call",
+                "type": event_type,
                 "method": str(client_call_details.method),
                 "function_path": "",
                 "argument": str(arg),
                 "GUID": guid,
-                "time0": str(time0),
-                "time1": str(time1),
-                "status": str(status).split(sep='.')[1],
+                "time": str(time),
+                "status": None if resp is None else str(status).split(sep='.')[1],
                 "details": ""
             }
 
@@ -141,14 +142,15 @@ class ClientTracer(grpc.UnaryUnaryClientInterceptor,
 
             msg["function_path"] = function_path
 
-            if status is not grpc.StatusCode.OK:
-                msg["details"] = str(response.exception().details())
+            if not(resp is None) and status is not grpc.StatusCode.OK:
+                msg["details"] = str(resp.exception().details())
             # send to proc_sender
             self._queue.put(msg)
 
-        time0 = datetime.datetime.now()
+        event_type = "grpc-client-call-send"
+        send_info()
         response = continuation(client_call_details, argument)
-
+        event_type = "grpc-client-call-receive"
         response.add_done_callback(send_info)
 
         return response
@@ -193,21 +195,20 @@ class ServerTracer(grpc_interceptor.ServerInterceptor):
     def intercept(self, method, request, context, method_name):
 
         guid, request_or_iterator = _get_GUID(request)
-
+        event_type = ''
         def send_info():
-            time1 = datetime.datetime.now()
+            time = datetime.datetime.now()
             status = context.code()
             msg = {
                 "hostname": socket.gethostname(),
                 "script": __main__.__file__,
-                "type": "gRPC-server-call",
+                "type": event_type,
                 "method": str(method_name),
                 "function_path": "",
                 "argument": str(request),
                 "GUID": guid,
-                "time0": str(time0),
-                "time1": str(time1),
-                "status": str(status).split(sep='.')[1],
+                "time": str(time),
+                "status": None if status is None else str(status).split(sep='.')[1],
                 "details": ""
             }
 
@@ -218,14 +219,15 @@ class ServerTracer(grpc_interceptor.ServerInterceptor):
 
             msg["function_path"] = function_path
 
-            if status is not grpc.StatusCode.OK:
+            if not (status is None) and status is not grpc.StatusCode.OK:
                 msg["details"] = str(context.details().decode("utf-8"))
             # send to proc_sender
             self._queue.put(msg)
-
+        event_type = "grpc-server-call-receive"
+        send_info()
+        event_type = "grpc-server-call-send"
         context.add_callback(send_info)
         try:
-            time0 = datetime.datetime.now()
             response = method(request, context)
             if context.code() is None:
                 context.set_code(grpc.StatusCode.OK)
