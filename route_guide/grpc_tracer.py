@@ -19,7 +19,7 @@ from grpc_tools import protoc
 
 # for server check https://realpython.com/python-microservices-grpc/#interceptors \/checked
 
-MAX_QUEUE_SIZE = 30
+MAX_QUEUE_SIZE = 100
 
 
 def _set_GUID(request_or_iterator, guid):
@@ -137,7 +137,7 @@ class ClientTracer(grpc.UnaryUnaryClientInterceptor,
 
             function_path = ''
             stack = inspect.stack()
-            for i in range(len(stack) - 1, 5, -1):
+            for i in range(len(stack) - 1, -1, -1):
                 function_path += '/' + str(stack[i].function)
 
             msg["function_path"] = function_path
@@ -214,7 +214,7 @@ class ServerTracer(grpc_interceptor.ServerInterceptor):
 
             function_path = ''
             stack = inspect.stack()
-            for i in range(len(stack) - 1, 0, -1):
+            for i in range(len(stack) - 1, -1, -1):
                 function_path += '/' + str(stack[i].function)
 
             msg["function_path"] = function_path

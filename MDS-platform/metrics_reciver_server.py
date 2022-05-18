@@ -1,22 +1,31 @@
 import signal
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
+from concurrent.futures import ThreadPoolExecutor
 
 import json
+import elasticsearch
 import multiprocessing
 
 import datetime
 
 MAX_SERVER_QUEUE_SIZE = 100
 
+# class QueueSaverHTTPServer(ThreadingMixIn, HTTPServer):
+class QueueSaverHTTPServer(HTTPServer):
 
-class SaverHTTPServer(HTTPServer):
     def __init__(self, server_address, RequestHandlerClass, queue):
+            # ThreadingMixIn.__init__(self)
         HTTPServer.__init__(self, server_address, RequestHandlerClass)
         self.queue = queue
+        self.count = 0
+        self.lock = multiprocessing.Lock()
 
 
-class SaverHttpHandler(BaseHTTPRequestHandler):
+
+
+class QueueSaverHttpHandler(BaseHTTPRequestHandler):
     # def do_GET(self):
     #     print(self.request)
     #     self.send_response(200, "OK")
@@ -30,8 +39,16 @@ class SaverHttpHandler(BaseHTTPRequestHandler):
             raw_data = self.rfile.read(content_length)
             recv_dicts = json.loads(raw_data)
 
-            for dictio in recv_dicts:
-                self.server.queue.put(dictio)
+            for event in recv_dicts:
+                doc = {
+                    "timestamp" : datetime.datetime.now(),
+                    "event" : event,
+                }
+                self.server.queue.put(doc)
+                # self.server.es.index(index="events", document=doc)
+                with self.server.lock:
+                    self.server.count +=1
+                    print(f'save event {event["type"]} ({self.server.count})')
 
             self.send_response(200, "OK")
             self.end_headers()
@@ -40,86 +57,67 @@ class SaverHttpHandler(BaseHTTPRequestHandler):
             self.send_error(501, message=str(e))
 
 
-def run(queue, server_class=SaverHTTPServer, handler_class=SaverHttpHandler):
+def run(queue, server_class=QueueSaverHTTPServer, handler_class=QueueSaverHttpHandler):
     server_address = ('0.0.0.0', 8000)
     httpd = server_class(server_address, handler_class, queue)
 
-    def finish(*_):
+    def finish(singnal, frame):
         httpd.server_close()
-        print("server has been stopped")
+        print(f"daemon has been stopped by signal {singnal}")
         sys.exit()
 
     signal.signal(signal.SIGTERM, finish)
+    signal.signal(signal.SIGINT, finish)
 
     try:
         httpd.serve_forever()
     except Exception as e:
+        print(f'daemon error is {e}')
+
+
+def send_event_to_es(es, doc):
+    try:
+        resp = es.index(index="events", document=doc)
+    except Exception as e:
         print(e)
-    finally:
-        httpd.server_close()
+        raise
 
-def calculate_basic_metrics(msg, data = {}):
-    # needed_fields = ["GUID", "type", "time",  "hostname", "script", "status", "details", "method", "argument"]
-    # for field in needed_fields:
-    #     if field not in msg.keys():
-    #         return {}
-    guid = msg["GUID"]
-    if guid not in data:
-        data[guid] = {"recv_time" : str(datetime.datetime.now())}
 
-    data[guid][msg["type"]] = msg
 
-    if len(data[guid]) < 5:
-        return {}
-
-    info = data[guid]
-
-    t0 = datetime.datetime.fromisoformat(info["grpc-client-call-send"]["time"])
-    t1 = datetime.datetime.fromisoformat(info["grpc-server-call-receive"]["time"])
-    t2 = datetime.datetime.fromisoformat(info["grpc-server-call-send"]["time"])
-    t3 = datetime.datetime.fromisoformat(info["grpc-client-call-receive"]["time"])
-
-    inf = {
-        "type"                       : "grpc-call",
-        "recive_time"                : info["recv_time"],
-        "method"                     : info["grpc-client-call-receive"]["method"],
-        "argument"                   : info["grpc-client-call-receive"]["argument"],
-        "GUID"                       : guid,
-        "client_side_time_in_seconds": float((t3 - t0).total_seconds()),
-        "server_side_time_in_seconds": float((t2 - t1).total_seconds()),
-        "network_time_in_seconds"    : float(((t3 - t0) - (t2 - t1)).total_seconds()),
-        "client_hostname"            : info["grpc-client-call-receive"]["hostname"],
-        "client_source"              : info["grpc-client-call-receive"]["script"],
-        "server_hostname"            : info["grpc-server-call-send"]["hostname"],
-        "server_source"              : info["grpc-server-call-send"]["script"],
-        "status"                     : info["grpc-server-call-send"]["status"],
-        "details"                    : info["grpc-server-call-send"]["details"]
-    }
-
-    del data[guid]
-    return inf
 
 def main():
+    es = elasticsearch.Elasticsearch(hosts='http://0.0.0.0:9200')
+
+    retries = 5
+    while not es.ping() and retries != 0:
+        retries = 0
+    if not es.ping() and retries == 0:
+        raise Exception("can't connect to Elasticsearch")
+
     q = multiprocessing.Queue(MAX_SERVER_QUEUE_SIZE)
     proc = multiprocessing.Process(target=run, args=(q,), daemon=True)
     proc.start()
-    def finish(*_):
-        proc.terminate()
+
+    def finish(signal, frame):
+        print(f'Main proc was stoped by signal {signal}')
+        # proc.terminate()
         sys.exit()
 
     signal.signal(signal.SIGINT, finish)
     signal.signal(signal.SIGTERM, finish)
+
+
     try:
-        while True:
-            res = calculate_basic_metrics(q.get())
-            if len(res) != 0:
-                print(json.dumps(res, indent=2))
+        with ThreadPoolExecutor(max_workers=40) as executor:
+            while True:
+                doc = q.get()
+                # send_event_to_es(es, doc)
+                executor.submit(send_event_to_es, es, doc)
     except Exception as e:
-        print(e)
-    finally:
-        proc.terminate()
-        proc.join()
+        print(f'Main proc error is {e}')
+        finish(-1, -1)
+
 
 
 if __name__ == "__main__":
-    main()
+   main()
