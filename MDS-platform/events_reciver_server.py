@@ -1,7 +1,6 @@
 import signal
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from socketserver import ThreadingMixIn
 from concurrent.futures import ThreadPoolExecutor
 
 import json
@@ -48,7 +47,7 @@ class QueueSaverHttpHandler(BaseHTTPRequestHandler):
                 # self.server.es.index(index="events", document=doc)
                 with self.server.lock:
                     self.server.count +=1
-                    print(f'save event {event["type"]} ({self.server.count})')
+                    # print(f'save event {event["type"]} ({self.server.count})')
 
             self.send_response(200, "OK")
             self.end_headers()
@@ -90,7 +89,8 @@ def main():
 
     retries = 5
     while not es.ping() and retries != 0:
-        retries = 0
+        retries -= 1
+
     if not es.ping() and retries == 0:
         raise Exception("can't connect to Elasticsearch")
 
@@ -99,6 +99,7 @@ def main():
     proc.start()
 
     def finish(signal, frame):
+        es.close()
         print(f'Main proc was stoped by signal {signal}')
         # proc.terminate()
         sys.exit()
@@ -108,7 +109,7 @@ def main():
 
 
     try:
-        with ThreadPoolExecutor(max_workers=40) as executor:
+        with ThreadPoolExecutor(max_workers=4) as executor:
             while True:
                 doc = q.get()
                 # send_event_to_es(es, doc)

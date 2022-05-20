@@ -130,9 +130,9 @@ class ClientTracer(grpc.UnaryUnaryClientInterceptor,
                 "function_path": "",
                 "argument": str(arg),
                 "GUID": guid,
-                "time": str(time),
+                "time": time.isoformat(),
                 "status": None if resp is None else str(status).split(sep='.')[1],
-                "details": ""
+                "details": None
             }
 
             function_path = ''
@@ -207,9 +207,9 @@ class ServerTracer(grpc_interceptor.ServerInterceptor):
                 "function_path": "",
                 "argument": str(request),
                 "GUID": guid,
-                "time": str(time),
+                "time": time.isoformat(),
                 "status": None if status is None else str(status).split(sep='.')[1],
-                "details": ""
+                "details": None
             }
 
             function_path = ''
