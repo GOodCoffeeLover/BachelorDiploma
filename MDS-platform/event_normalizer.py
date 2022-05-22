@@ -241,8 +241,19 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
 
                         t_first = datetime.datetime.fromisoformat(resp['aggregations']['first_time_call']['value_as_string'][:-1])
                         t_last  = datetime.datetime.fromisoformat(resp['aggregations']['last_time_call' ]['value_as_string'][:-1])
-                        count = resp['aggregations']['number_of_calls']['value']
+                        total_time = (t_last - t_first).total_seconds()
+                        err_query_mathch = {
+                            "bool":{
+                                "must_not":[{
+                                    "match" :{
+                                        "status.keyword": "OK"
+                                    }
+                                }]
+                            }
 
+                        }
+                        count = resp['aggregations']['number_of_calls']['value']
+                        err_count = elastic_search_client.search(index='grpc-events', query=err_query_mathch, track_total_hits=True)['hits']['total']['value']
                         edge = {
                             # "type" : "edge",
                             "id" : str(uuid.uuid4()),
@@ -254,7 +265,8 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
                             # "detail_total_network_time" : resp['aggregations']['sum_network_time']['value'],
                             "detail_total_client_time"  : resp['aggregations']['sum_client_time']['value'],
                             # "detail_total_server_time"  : resp['aggregations']['sum_server_time']['value'],
-                            "frequency"          : count,
+                            "frequency"  : count/total_time,
+                            "error_rate" : err_count/total_time,
                             # "detail_method"             : method['key'],
                             "timestamp"                 : datetime.datetime.now()
                         }
