@@ -1,5 +1,6 @@
 import signal
 import sys
+import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from concurrent.futures import ThreadPoolExecutor
 
@@ -10,6 +11,7 @@ import multiprocessing
 import datetime
 
 MAX_SERVER_QUEUE_SIZE = 100
+ELASTICKSEARCH_HOST='http://0.0.0.0:9200'
 
 # class QueueSaverHTTPServer(ThreadingMixIn, HTTPServer):
 class QueueSaverHTTPServer(HTTPServer):
@@ -18,8 +20,6 @@ class QueueSaverHTTPServer(HTTPServer):
             # ThreadingMixIn.__init__(self)
         HTTPServer.__init__(self, server_address, RequestHandlerClass)
         self.queue = queue
-        self.count = 0
-        self.lock = multiprocessing.Lock()
 
 
 
@@ -44,10 +44,6 @@ class QueueSaverHttpHandler(BaseHTTPRequestHandler):
                     "event" : event,
                 }
                 self.server.queue.put(doc)
-                # self.server.es.index(index="events", document=doc)
-                with self.server.lock:
-                    self.server.count +=1
-                    # print(f'save event {event["type"]} ({self.server.count})')
 
             self.send_response(200, "OK")
             self.end_headers()
@@ -85,14 +81,15 @@ def send_event_to_es(es, doc):
 
 
 def main():
-    es = elasticsearch.Elasticsearch(hosts='http://0.0.0.0:9200')
+    es = elasticsearch.Elasticsearch(hosts=ELASTICKSEARCH_HOST)
 
     retries = 5
     while not es.ping() and retries != 0:
         retries -= 1
+        time.sleep(1)
 
     if not es.ping() and retries == 0:
-        raise Exception("can't connect to Elasticsearch")
+        raise Exception(f"can't connect to Elasticsearch at {ELASTICKSEARCH_HOST}")
 
     q = multiprocessing.Queue(MAX_SERVER_QUEUE_SIZE)
     proc = multiprocessing.Process(target=run, args=(q,), daemon=True)

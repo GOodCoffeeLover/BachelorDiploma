@@ -106,10 +106,10 @@ def run():
         stub = route_guide_pb2_grpc.RouteGuideStub(channel)
         import datetime, random, time
         functions = [guide_get_feature, guide_list_features, guide_record_route, guide_route_chat]
-        count = 5000000000
+        count = 500
 
         # t0 = datetime.datetime.now()
-        while True and count > 0:
+        while True:
             count -= 1
             func = random.choice(functions)
             print("-------------- {} --------------".format(func.__name__))
@@ -118,7 +118,7 @@ def run():
                 func(stub)
             except Exception as e:
                 print(f'Error is :{e!r}')
-            time.sleep(1)
+            time.sleep(10)
         # t1 = datetime.datetime.now()
         # print(f'worked in total {(t1-t0).total_seconds()}\'s')
 
