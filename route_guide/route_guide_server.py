@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The Python implementation of the gRPC route guide server."""
-
+import os
 from concurrent import futures
 from signal import signal, SIGTERM, SIGINT
 import logging
@@ -23,6 +23,9 @@ import grpc
 import route_guide_pb2
 import route_guide_pb2_grpc
 import route_guide_resources
+
+ROUTE_GUIDE_SERVER_ADDRESS = os.getenv("ROUTE_GUIDE_SERVER_ADDRESS", "[::]:50051")
+
 
 
 def get_feature(feature_db, point):
@@ -114,7 +117,7 @@ def serve():
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
         route_guide_pb2_grpc.add_RouteGuideServicer_to_server(
             RouteGuideServicer(), server)
-        server.add_insecure_port('[::]:50051')
+        server.add_insecure_port(ROUTE_GUIDE_SERVER_ADDRESS)
         server.start()
 
         def handle_sigterm(*_):

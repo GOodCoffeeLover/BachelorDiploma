@@ -1,4 +1,5 @@
 import json
+import os
 import signal
 import sys
 import time
@@ -6,6 +7,7 @@ import datetime
 import elasticsearch
 from concurrent.futures import ThreadPoolExecutor
 import uuid
+ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST", "http://0.0.0.0:9200")
 
 
 def normilize_grpc_evet_by_guid(elastic_search_client : elasticsearch.Elasticsearch, uuid) -> None:
@@ -42,7 +44,9 @@ def normilize_grpc_evet_by_guid(elastic_search_client : elasticsearch.Elasticsea
     }
     ids = []
     time_receive = None
+    method = None
     for ev in resp['hits']['hits']:
+        method = ev['_source']['event']['method']
         ids.append(ev['_id'])
         cur_time_recv = datetime.datetime.fromisoformat(ev['_source']['timestamp'])
         if time_receive == None or time_receive > cur_time_recv:
@@ -51,11 +55,12 @@ def normilize_grpc_evet_by_guid(elastic_search_client : elasticsearch.Elasticsea
 
     res = {
         "GUID": uuid,
-        "timestamp": time_receive.isoformat()
+        "timestamp": time_receive.isoformat(),
+        "method" : method,
     }
 
     if not (events['grpc-server-call-send'] is None or events['grpc-server-call-receive'] is None):
-        res['method']   = events['grpc-client-call-receive']['method']
+        # res['method']   = events['grpc-client-call-receive']['method']
         res['argument'] = events['grpc-client-call-receive']['argument']
         res["client_info"] = {
             "hostname":      events['grpc-client-call-receive']["hostname"],
@@ -69,7 +74,7 @@ def normilize_grpc_evet_by_guid(elastic_search_client : elasticsearch.Elasticsea
         res["client_side_time"] = (t3 - t0).total_seconds()
 
     if not (events['grpc-server-call-send'] is None or events['grpc-server-call-receive'] is None):
-        res['method']   = events['grpc-server-call-send']['method']
+        # res['method']   = events['grpc-server-call-send']['method']
         res['argument'] = events['grpc-server-call-send']['argument']
         res["server_info"] = {
             "hostname":      events['grpc-server-call-send']["hostname"],
@@ -276,7 +281,7 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
 
 
 def main():
-    es = elasticsearch.Elasticsearch(hosts = 'http://0.0.0.0:9200')
+    es = elasticsearch.Elasticsearch(hosts = ELASTICSEARCH_HOST)
     retries = 5
     while not es.ping() and retries > 0:
         retries -= 1
@@ -293,16 +298,16 @@ def main():
     signal.signal(signal.SIGINT, final)
     signal.signal(signal.SIGTERM, final)
 
-    # functions = [grpc_events, make_dependency_graph]
-    functions = [make_dependency_graph]
+    functions = [grpc_events, make_dependency_graph]
+    # functions = [make_dependency_graph]
 
     while True:
         for func in functions:
             func(es)
         # grpc_events(es)
         print("go to sleep")
-        # time.sleep(5*60)
-        break
+        time.sleep(60)
+
 
 
 if __name__ == "__main__":

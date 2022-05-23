@@ -1,4 +1,5 @@
 import multiprocessing
+import os
 import re
 import signal
 
@@ -17,9 +18,8 @@ import requests
 
 from grpc_tools import protoc
 
-# for server check https://realpython.com/python-microservices-grpc/#interceptors \/checked
-
 MAX_QUEUE_SIZE = 100
+MDS_PLATFORM_ADDRESS = os.getenv("MDS_PLATFORM_ADDRESS", "http://0.0.0.0:8000")
 
 
 def _set_GUID(request_or_iterator, guid):
@@ -67,7 +67,7 @@ def _get_GUID(request_or_iterator):
 
 def send(list_of_msgs):
     try:
-        requests.post("http://0.0.0.0:8000", data=json.dumps(list_of_msgs))
+        requests.post(MDS_PLATFORM_ADDRESS, data=json.dumps(list_of_msgs))
     except Exception as exp:
         print(f'can\'t send info to MDS-platform cause of {exp}')
 
@@ -145,7 +145,7 @@ class ClientTracer(grpc.UnaryUnaryClientInterceptor,
             if not(resp is None) and status is not grpc.StatusCode.OK:
                 msg["details"] = str(resp.exception().details())
             # send to proc_sender
-            self._queue.put(msg)
+            self._queue.put_nowait(msg)
 
         event_type = "grpc-client-call-send"
         send_info()
@@ -167,18 +167,6 @@ class ClientTracer(grpc.UnaryUnaryClientInterceptor,
     def intercept_stream_stream(self, continuation, client_call_details, request_it):
         return self.intercept(continuation, client_call_details, request_it)
 
-
-# def add_RouteGuideServicer_to_server(servicer, server):
-
-#   import grpc_tracer
-
-#   if ( server._state.interceptor_pipeline is None ) :
-#     server._state.interceptor_pipeline = grpc._interceptor.service_pipeline([grpc_tracer.ServerTracer()])
-
-#   else:
-#     list_interceptors = list(server._state.interceptor_pipeline.interceptors)
-#     list_interceptors.append(grpc_tracer.ServerTracer())
-#     server._state.interceptor_pipeline.interceptors = tuple(list_interceptors)
 
 
 class ServerTracer(grpc_interceptor.ServerInterceptor):
@@ -222,7 +210,7 @@ class ServerTracer(grpc_interceptor.ServerInterceptor):
             if not (status is None) and status is not grpc.StatusCode.OK:
                 msg["details"] = str(context.details().decode("utf-8"))
             # send to proc_sender
-            self._queue.put(msg)
+            self._queue.put_nowait(msg)
         event_type = "grpc-server-call-receive"
         send_info()
         event_type = "grpc-server-call-send"

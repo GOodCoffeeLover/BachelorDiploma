@@ -16,6 +16,7 @@
 from __future__ import print_function
 
 import logging
+import os
 import random
 
 import grpc
@@ -23,6 +24,7 @@ import route_guide_pb2
 import route_guide_pb2_grpc
 import route_guide_resources
 
+ROUTE_GUIDE_SERVER_ADDRESS = os.getenv("ROUTE_GUIDE_SERVER_ADDRESS", "[::]:50051")
 
 def make_route_note(message, latitude, longitude):
     return route_guide_pb2.RouteNote(
@@ -102,7 +104,7 @@ def run():
     # NOTE(gRPC Python Team): .close() is possible on a channel and should be
     # used in circumstances in which the with statement does not fit the needs
     # of the code.
-    with grpc.insecure_channel('[::]:50051') as channel:
+    with grpc.insecure_channel(ROUTE_GUIDE_SERVER_ADDRESS) as channel:
         stub = route_guide_pb2_grpc.RouteGuideStub(channel)
         import datetime, random, time
         functions = [guide_get_feature, guide_list_features, guide_record_route, guide_route_chat]
@@ -118,7 +120,7 @@ def run():
                 func(stub)
             except Exception as e:
                 print(f'Error is :{e!r}')
-            time.sleep(10)
+            time.sleep(0.1)
         # t1 = datetime.datetime.now()
         # print(f'worked in total {(t1-t0).total_seconds()}\'s')
 
