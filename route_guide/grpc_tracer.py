@@ -118,7 +118,7 @@ class ClientTracer(grpc.UnaryUnaryClientInterceptor,
         argument = _set_GUID(arg, guid)
         event_type = None
         def send_info(resp=None):
-            time = datetime.datetime.now()
+            time = datetime.datetime.utcnow()
             status = ''
             if not(resp is None):
                 status = resp.code()
@@ -185,7 +185,7 @@ class ServerTracer(grpc_interceptor.ServerInterceptor):
         guid, request_or_iterator = _get_GUID(request)
         event_type = ''
         def send_info():
-            time = datetime.datetime.now()
+            time = datetime.datetime.utcnow()
             status = context.code()
             msg = {
                 "hostname": socket.gethostname(),

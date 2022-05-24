@@ -40,7 +40,7 @@ class QueueSaverHttpHandler(BaseHTTPRequestHandler):
 
             for event in recv_dicts:
                 doc = {
-                    "timestamp" : datetime.datetime.now(),
+                    "timestamp" : datetime.datetime.utcnow(),
                     "event" : event,
                 }
                 self.server.queue.put(doc)

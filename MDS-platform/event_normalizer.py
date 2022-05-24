@@ -8,6 +8,7 @@ import elasticsearch
 from concurrent.futures import ThreadPoolExecutor
 import uuid
 ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST", "http://0.0.0.0:9200")
+MINUTS = os.getenv("TIMER_IN_MINUTS", 1)
 
 
 def normilize_grpc_evet_by_guid(elastic_search_client : elasticsearch.Elasticsearch, uuid) -> None:
@@ -103,7 +104,7 @@ def grpc_events(elastic_search_client):
         "query": {
             "range": {
                 "timestamp": {
-                    "lte": datetime.datetime.now()
+                    "lte": datetime.datetime.utcnow()
                 }
             }
         },
@@ -148,16 +149,39 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
             }
         }
     }
+    range_queue = {
+        "range": {
+          "timestamp": {
+            "gte": "now-{}m".format(MINUTS),
+            "lte": "now"
+          }
+        }
+      }
     resp = elastic_search_client.search(index="grpc-events", aggs=query['aggs'], size=query['size'])
     src_hosts =  resp['aggregations']['agg']['buckets']
     query['query'] = {"bool": {"must": []}}
     for out_host in src_hosts:
+        query = {
+            "size": 0,
+            "query":{
+                "bool": {"must": []}
+            
+            },
+            "aggs": {
+                "agg": {
+                    "terms": {
+                        "field": "client_info.hostname.keyword",
+                        "size": 10
+                    }
+                }
+            }
+        }
         client_host_match = {
             "match": {
                 "client_info.hostname.keyword": out_host['key']
             }
         }
-        query['query']['bool']['must'] = [client_host_match]
+        query['query']['bool']['must'] = [range_queue,client_host_match]
         query['aggs']['agg']['terms']['field'] = "client_info.script.keyword"
         resp = elastic_search_client.search(index="grpc-events", query=query['query'], aggs=query['aggs'], size=query['size'])
         src_scripts = resp['aggregations']['agg']['buckets']
@@ -168,8 +192,16 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
                     "client_info.script.keyword": out_script['key']
                 }
             }
-            query['query']['bool']['must'] = [client_host_match, client_script_match]
-            query['aggs']['agg']['terms']['field'] = "server_info.hostname.keyword"
+            query['query']['bool']['must'] = [range_queue,client_host_match, client_script_match]
+            # print(json.dumps(query, indent=2))
+            query['aggs'] = {
+                                "agg": {
+                                    "terms": {
+                                        "field": "server_info.hostname.keyword",
+                                        "size": 10
+                                    }
+                                }
+                            } 
             resp = elastic_search_client.search(index="grpc-events", query=query['query'], aggs=query['aggs'],
                                                 size=query['size'])
             dest_hosts = resp['aggregations']['agg']['buckets']
@@ -179,8 +211,16 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
                         "server_info.hostname.keyword": in_host['key']
                     }
                 }
-                query['query']['bool']['must'] = [client_host_match, client_script_match, server_host_match]
-                query['aggs']['agg']['terms']['field'] = "server_info.script.keyword"
+                query['query']['bool']['must'] = [range_queue,client_host_match, client_script_match, server_host_match]
+                query['aggs']= {
+                                    "agg": {
+                                        "terms": {
+                                            "field": "server_info.script.keyword",
+                                            "size": 10
+                                        }
+                                    }
+                                } 
+            
                 resp = elastic_search_client.search(index="grpc-events", query=query['query'], aggs=query['aggs'],
                                                     size=query['size'])
                 dest_scripts = resp['aggregations']['agg']['buckets']
@@ -190,7 +230,7 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
                             "server_info.script.keyword": in_script['key']
                         }
                     }
-                    query['query']['bool']['must'] = [client_host_match, client_script_match, server_host_match, server_script_match]
+                    query['query']['bool']['must'] = [range_queue,client_host_match, client_script_match, server_host_match, server_script_match]
                     query['aggs']['agg']['terms']['field'] = "method.keyword"
                     resp = elastic_search_client.search(index="grpc-events", query=query['query'], aggs=query['aggs'],
                                                         size=query['size'])
@@ -204,7 +244,7 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
                         #         "method.keyword": method['key']
                         #     }
                         # }
-                        query['query']['bool']['must'] = [client_host_match, client_script_match, server_host_match,
+                        query['query']['bool']['must'] = [range_queue,client_host_match, client_script_match, server_host_match,
                                                           server_script_match]#, method_match]
 
                         query['aggs'] = {
@@ -253,7 +293,9 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
                                     "match" :{
                                         "status.keyword": "OK"
                                     }
-                                }]
+                                }, 
+                                range_queue
+                                ]
                             }
 
                         }
@@ -273,7 +315,7 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
                             "frequency"  : count/total_time,
                             "error_rate" : err_count/total_time,
                             # "detail_method"             : method['key'],
-                            "timestamp"                 : datetime.datetime.now()
+                            "timestamp"                 : datetime.datetime.utcnow()
                         }
                         elastic_search_client.index(index="grpc-dependencies", document=edge)
 
@@ -306,7 +348,7 @@ def main():
             func(es)
         # grpc_events(es)
         print("go to sleep")
-        time.sleep(60)
+        time.sleep(MINUTS*60)
 
 
 
