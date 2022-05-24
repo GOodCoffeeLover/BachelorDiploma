@@ -7,8 +7,8 @@ import datetime
 import elasticsearch
 from concurrent.futures import ThreadPoolExecutor
 import uuid
-ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST", "http://0.0.0.0:9200")
-MINUTS = os.getenv("TIMER_IN_MINUTS", 1)
+ELASTICSEARCH_ADDRESS = 'http://' + os.getenv("ELASTICSEARCH_ADDRESS", "0.0.0.0") + ':9200'
+MINUTES = float(os.getenv("TIMER_IN_MINUTES", 1))
 
 
 def normilize_grpc_evet_by_guid(elastic_search_client : elasticsearch.Elasticsearch, uuid) -> None:
@@ -43,12 +43,12 @@ def normilize_grpc_evet_by_guid(elastic_search_client : elasticsearch.Elasticsea
         "grpc-client-call-send": None,
         "grpc-client-call-receive": None
     }
-    ids = []
+    # ids = []
     time_receive = None
     method = None
     for ev in resp['hits']['hits']:
         method = ev['_source']['event']['method']
-        ids.append(ev['_id'])
+        # ids.append(ev['_id'])
         cur_time_recv = datetime.datetime.fromisoformat(ev['_source']['timestamp'])
         if time_receive == None or time_receive > cur_time_recv:
             time_receive = cur_time_recv
@@ -94,9 +94,9 @@ def normilize_grpc_evet_by_guid(elastic_search_client : elasticsearch.Elasticsea
     else:
         res["status"] = "FAILED"
 
-    resp = elastic_search_client.index(index="grpc-events", document=res)
-    for doc_id in ids:
-        resp = elastic_search_client.delete(index="events", id=doc_id)
+    resp = elastic_search_client.index(index="grpc-events", id=uuid, document=res)
+    # for doc_id in ids:
+    #     resp = elastic_search_client.delete(index="events", id=doc_id)
 
 
 def grpc_events(elastic_search_client):
@@ -104,7 +104,8 @@ def grpc_events(elastic_search_client):
         "query": {
             "range": {
                 "timestamp": {
-                    "lte": datetime.datetime.utcnow()
+                    "gte" : "now-{}m".format(int(MINUTES)),
+                    "lte": "now"
                 }
             }
         },
@@ -126,6 +127,8 @@ def grpc_events(elastic_search_client):
                                         source=query_for_guids['_source'])
     if resp.meta.status//100 != 2:
         print(f'error {resp.meta.status}')
+        return
+    if 'aggregations' not in resp.keys():
         return
     # print(resp)
     with ThreadPoolExecutor(max_workers=16) as executor:
@@ -152,7 +155,7 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
     range_queue = {
         "range": {
           "timestamp": {
-            "gte": "now-{}m".format(MINUTS),
+            "gte": "now-{}m".format(int(MINUTES*2)),
             "lte": "now"
           }
         }
@@ -312,8 +315,8 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
                             # "detail_total_network_time" : resp['aggregations']['sum_network_time']['value'],
                             "detail_total_client_time"  : resp['aggregations']['sum_client_time']['value'],
                             # "detail_total_server_time"  : resp['aggregations']['sum_server_time']['value'],
-                            "frequency"  : count/total_time,
-                            "error_rate" : err_count/total_time,
+                            "frequency"  : count/total_time if total_time > 0.00001 else 0.0,
+                            "error_rate" : err_count/total_time if total_time > 0.00001 else 0.0,
                             # "detail_method"             : method['key'],
                             "timestamp"                 : datetime.datetime.utcnow()
                         }
@@ -323,14 +326,14 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
 
 
 def main():
-    es = elasticsearch.Elasticsearch(hosts = ELASTICSEARCH_HOST)
+    es = elasticsearch.Elasticsearch(hosts = ELASTICSEARCH_ADDRESS)
     retries = 5
     while not es.ping() and retries > 0:
         retries -= 1
         time.sleep(1)
 
     if not es.ping():
-        raise Exception("can't connect to Elasticsearch")
+        raise Exception(f"can't connect to Elasticsearch at {ELASTICSEARCH_ADDRESS}")
 
     def final(signal, frame):
         es.close()
@@ -342,13 +345,13 @@ def main():
 
     functions = [grpc_events, make_dependency_graph]
     # functions = [make_dependency_graph]
-
+    time.sleep(MINUTES * 60)
     while True:
         for func in functions:
             func(es)
         # grpc_events(es)
         print("go to sleep")
-        time.sleep(MINUTS*60)
+        time.sleep(MINUTES * 60)
 
 
 

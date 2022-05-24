@@ -24,7 +24,8 @@ import route_guide_pb2
 import route_guide_pb2_grpc
 import route_guide_resources
 
-ROUTE_GUIDE_SERVER_ADDRESS = os.getenv("ROUTE_GUIDE_SERVER_ADDRESS", "[::]:50051")
+ROUTE_GUIDE_SERVER_ADDRESS = os.getenv("ROUTE_GUIDE_SERVER_ADDRESS", "[::]") + ':50051'
+CLIENT_FREQUENCY_IN_SECONDS = float(os.getenv("CLIENT_FREQUENCY_IN_SECONDS", 0.1))
 
 def make_route_note(message, latitude, longitude):
     return route_guide_pb2.RouteNote(
@@ -106,7 +107,7 @@ def run():
     # of the code.
     with grpc.insecure_channel(ROUTE_GUIDE_SERVER_ADDRESS) as channel:
         stub = route_guide_pb2_grpc.RouteGuideStub(channel)
-        import datetime, random, time
+        import datetime, random, time, sys
         functions = [guide_get_feature, guide_list_features, guide_record_route, guide_route_chat]
         count = 500
 
@@ -114,13 +115,13 @@ def run():
         while True:
             count -= 1
             func = random.choice(functions)
-            print("-------------- {} --------------".format(func.__name__))
+            print("-------------- {} --------------".format(func.__name__), file=sys.stderr)
 
             try:
                 func(stub)
             except Exception as e:
-                print(f'Error is :{e!r}')
-            time.sleep(0.1)
+                print(f'Error is :{e!r}', file=sys.stderr)
+            time.sleep(CLIENT_FREQUENCY_IN_SECONDS)
         # t1 = datetime.datetime.now()
         # print(f'worked in total {(t1-t0).total_seconds()}\'s')
 

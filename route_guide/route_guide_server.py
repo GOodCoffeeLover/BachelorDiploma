@@ -24,7 +24,7 @@ import route_guide_pb2
 import route_guide_pb2_grpc
 import route_guide_resources
 
-ROUTE_GUIDE_SERVER_ADDRESS = os.getenv("ROUTE_GUIDE_SERVER_ADDRESS", "[::]:50051")
+ROUTE_GUIDE_SERVER_ADDRESS = os.getenv("ROUTE_GUIDE_SERVER_ADDRESS", "[::]")+':50051'
 
 
 

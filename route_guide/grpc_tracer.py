@@ -19,7 +19,7 @@ import requests
 from grpc_tools import protoc
 
 MAX_QUEUE_SIZE = 100
-MDS_PLATFORM_ADDRESS = os.getenv("MDS_PLATFORM_ADDRESS", "http://0.0.0.0:8000")
+MDS_PLATFORM_ADDRESS = 'http://' + os.getenv("MDS_PLATFORM_ADDRESS", "0.0.0.0") + ':8000'
 
 
 def _set_GUID(request_or_iterator, guid):
