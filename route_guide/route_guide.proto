@@ -59,9 +59,6 @@ service RouteGuide {
 message Point {
   int32 latitude = 1;
   int32 longitude = 2;
-
-  //GUID
-  string GUID = 3;
 }
 
 // A latitude-longitude rectangle, represented as two diagonally opposite
@@ -72,9 +69,6 @@ message Rectangle {
 
   // The other corner of the rectangle.
   Point hi = 2;
-
-  //GUID
-  string GUID = 3;
 }
 
 // A feature names something at a given point.
@@ -86,9 +80,6 @@ message Feature {
 
   // The point where the feature is detected.
   Point location = 2;
-
-  //GUID
-  string GUID = 3;
 }
 
 // A RouteNote is a message sent while at a given point.
@@ -98,9 +89,6 @@ message RouteNote {
 
   // The message to be sent.
   string message = 2;
-
-  //GUID
-  string GUID = 3;
 }
 
 // A RouteSummary is received in response to a RecordRoute rpc.
@@ -120,7 +108,4 @@ message RouteSummary {
 
   // The duration of the traversal in seconds.
   int32 elapsed_time = 4;
-
-  //GUID
-  string GUID = 5;
 }

@@ -14,7 +14,6 @@ services:
             -   "mds_platform_sink"
         command: ["./wait-for-it.sh", "-t", "0", "mds_platform_sink:8000", "--", "python", "route_guide_server.py"]
 
-
     rg_client:
         build:
             dockerfile: Dockerfile_client
@@ -30,7 +29,6 @@ services:
             -   "rg_server"
         command: ["./wait-for-it.sh", "-t", "0", "rg_server:50051", "--", "python", "route_guide_client.py"]
 
-
     mds_platform_sink:
         image: mds_sink:1.0
         build:
@@ -43,7 +41,6 @@ services:
         depends_on:
             - "elastic_search"
         command: ["./wait-for-it.sh", "-t", "0", "elastic_search:9200", "--", "python", "events_reciver_server.py"]
-
 
     mds_platform_normalizer:
         image: mds_normalizer:1.0

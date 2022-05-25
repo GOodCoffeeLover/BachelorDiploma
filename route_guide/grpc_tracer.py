@@ -305,8 +305,21 @@ def _insert_interceptors(file_name):
     with open(file_name, 'w') as file:
         file.write(data)
 
+def _remove_guid_from_proto(file_name):
+    # data = ''
+    with open(file_name, 'r') as in_file:
+        data = in_file.read()
 
-def proto_gen(command_arguments):
+        guid_regex = '\n  //GUID\n  string GUID = \d+;\n\}'
+        another_text = re.split(guid_regex, data)
+
+        data = '}'.join(another_text)
+        # print(data)
+    with open(file_name, 'w') as out_file:
+        out_file.write(data)
+
+
+def main(command_arguments):
     files = []
 
     for i, arg in enumerate(command_arguments):
@@ -316,6 +329,9 @@ def proto_gen(command_arguments):
         _add_guid_to_proto(arg)
 
     protoc.main(command_arguments)
+
+    for file in files:
+        _remove_guid_from_proto(file)
 
     for file in [f[:-6] + '_pb2_grpc.py' for f in files]:
         _insert_interceptors(file)

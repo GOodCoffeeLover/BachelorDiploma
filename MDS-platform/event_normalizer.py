@@ -147,7 +147,7 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
             "agg": {
                 "terms": {
                     "field": "client_info.hostname.keyword",
-                    "size": 10
+                    "size": 10000
                 }
             }
         }
@@ -174,7 +174,7 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
                 "agg": {
                     "terms": {
                         "field": "client_info.hostname.keyword",
-                        "size": 10
+                        "size": 10000
                     }
                 }
             }
@@ -201,7 +201,7 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
                                 "agg": {
                                     "terms": {
                                         "field": "server_info.hostname.keyword",
-                                        "size": 10
+                                        "size": 10000
                                     }
                                 }
                             } 
@@ -215,11 +215,11 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
                     }
                 }
                 query['query']['bool']['must'] = [range_queue,client_host_match, client_script_match, server_host_match]
-                query['aggs']= {
+                query['aggs'] = {
                                     "agg": {
                                         "terms": {
                                             "field": "server_info.script.keyword",
-                                            "size": 10
+                                            "size": 10000
                                         }
                                     }
                                 } 

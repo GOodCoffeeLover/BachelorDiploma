@@ -15,22 +15,25 @@
 
 from grpc_tools import protoc
 import grpc_tracer
+def main():
+    traced = True
 
-traced = True
+    if not traced :
+        protoc.main((
+            '',
+            '-I.',
+            '--python_out=.',
+            '--grpc_python_out=.',
+            './route_guide.proto',
+        ))
+    else:
+        grpc_tracer.main((
+            '',
+            '-I.',
+            '--python_out=.',
+            '--grpc_python_out=.',
+            './route_guide.proto',
+        ))
 
-if not traced :
-    protoc.main((
-        '',
-        '-I.',
-        '--python_out=.',
-        '--grpc_python_out=.',
-        './route_guide.proto',
-    ))
-else:
-    grpc_tracer.proto_gen((
-        '',
-        '-I.',
-        '--python_out=.',
-        '--grpc_python_out=.',
-        './route_guide.proto',
-    ))
+if __name__ == "__main__":
+    main()
