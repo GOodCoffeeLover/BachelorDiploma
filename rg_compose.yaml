@@ -4,7 +4,7 @@ services:
     rg_server:
         build:
             dockerfile: Dockerfile_server
-            context: ..
+            context: .
         image: rg_server:1.0
         ports:
             - "50051:50051"
@@ -17,7 +17,7 @@ services:
     rg_client:
         build:
             dockerfile: Dockerfile_client
-            context: ..
+            context: .
         image: rg_client:1.0
         environment:
             - ROUTE_GUIDE_SERVER_ADDRESS=rg_server
@@ -33,7 +33,7 @@ services:
         image: mds_sink:1.0
         build:
             dockerfile: Dockerfile_mds_sink
-            context: ..
+            context: .
         ports:
             - "8000:8000"
         environment:
@@ -46,7 +46,7 @@ services:
         image: mds_normalizer:1.0
         build:
             dockerfile: Dockerfile_mds_normalizer
-            context: ..
+            context: .
         environment:
             - ELASTICSEARCH_ADDRESS=elastic_search
             - TIMER_IN_MINUTES=1
@@ -55,7 +55,7 @@ services:
         command: ["./wait-for-it.sh", "-t", "0", "elastic_search:9200", "--", "python", "event_normalizer.py"]
 
     elastic_search:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.2.0
+        image: elasticsearch:8.2.0
         ports:
             - "9200:9200"
         environment:
@@ -69,7 +69,7 @@ services:
             retries: 5
 
     kibana:
-        image: docker.elastic.co/kibana/kibana:8.2.0
+        image: kibana:8.2.0
         ports:
             - "5601:5601"
     grafana:
