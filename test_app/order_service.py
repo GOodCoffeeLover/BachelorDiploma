@@ -14,7 +14,7 @@ from concurrent import futures
 
 USER_SERVER_ADDRESS = os.getenv("USER_SERVER_ADDRESS", '[::]') + ':50061'
 PRODUCT_SERVER_ADDRESS = os.getenv("PRODUCT_SERVER_ADDRESS", '[::]') + ':50062'
-
+NUMBER_OF_ITERATIONS = int(os.getenv("NUMBER_OF_ITERATIONS", 1000))
 
 class OrderServiceServer(order_service_pb2_grpc.OrderServiceServicer):
 
@@ -35,6 +35,9 @@ class OrderServiceServer(order_service_pb2_grpc.OrderServiceServicer):
                                            UserId=user_id,
                                            ProductId=product_id,
                                            Count=random.randint(0, 128))
+        prod = 1
+        for i in range(NUMBER_OF_ITERATIONS):
+            prod *= i
 
         return response
 

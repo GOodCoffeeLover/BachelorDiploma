@@ -3,12 +3,16 @@ import random
 import signal
 
 import grpc
+
 import user_service_pb2
 import user_service_pb2_grpc
+
 import product_service_pb2
 import product_service_pb2_grpc
+
 import order_service_pb2
 import order_service_pb2_grpc
+
 import report_service_pb2
 import report_service_pb2_grpc
 
@@ -18,7 +22,7 @@ from concurrent import futures
 USER_SERVER_ADDRESS = os.getenv("USER_SERVER_ADDRESS", '[::]') + ':50061'
 PRODUCT_SERVER_ADDRESS = os.getenv("PRODUCT_SERVER_ADDRESS", '[::]') + ':50062'
 ORDER_SERVER_ADDRESS = os.getenv("ORDER_SERVER_ADDRESS", '[::]') + ':50063'
-
+NUMBER_OF_ITERATIONS = os.getenv("NUMBER_OF_ITERATIONS", 1000)
 
 class ReportServiceServer(report_service_pb2_grpc.ReportServiceServicer):
 
@@ -45,6 +49,10 @@ class ReportServiceServer(report_service_pb2_grpc.ReportServiceServicer):
                                              UserName=user.Name,
                                              ProductName=product.Name,
                                              Count=order.Count)
+        prod = 1
+        for i in range(NUMBER_OF_ITERATIONS):
+            prod *= i
+
         return response
 
     def __del__(self):

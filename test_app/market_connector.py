@@ -7,18 +7,12 @@ import time
 import grpc
 import numpy
 
-import user_service_pb2
-import user_service_pb2_grpc
-
 import product_service_pb2
 import product_service_pb2_grpc
 
-import order_service_pb2
-import order_service_pb2_grpc
-
 
 PRODUCT_SERVER_ADDRESS = os.getenv("PRODUCT_SERVER_ADDRESS", '[::]') + ':50062'
-TIMER_IN_SECONDS = os.getenv("TIMER_IN_SECONDS", 1)
+TIMER_IN_SECONDS = float(os.getenv("TIMER_IN_SECONDS", 1))
 
 def main():
     with contextlib.ExitStack() as stack:

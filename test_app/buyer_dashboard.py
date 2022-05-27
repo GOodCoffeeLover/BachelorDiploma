@@ -1,5 +1,4 @@
 import contextlib
-import datetime
 import random
 import os
 import time
@@ -21,7 +20,7 @@ import order_service_pb2_grpc
 USER_SERVER_ADDRESS = os.getenv("USER_SERVER_ADDRESS", '[::]') + ':50061'
 PRODUCT_SERVER_ADDRESS = os.getenv("PRODUCT_SERVER_ADDRESS", '[::]') + ':50062'
 ORDER_SERVER_ADDRESS = os.getenv("ORDER_SERVER_ADDRESS", '[::]') + ':50063'
-TIMER_IN_SECONDS = os.getenv("TIMER_IN_SECONDS", 1)
+TIMER_IN_SECONDS = float(os.getenv("TIMER_IN_SECONDS", 1))
 
 def main():
     with contextlib.ExitStack() as stack:

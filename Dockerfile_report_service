@@ -1,0 +1,15 @@
+FROM python
+
+RUN apt-get update -y && apt-get upgrade -y
+
+RUN ["mkdir", "/app"]
+
+WORKDIR /app
+
+COPY ./wait-for-it.sh ./requirements.txt ./test_app/grpc_tracer.py ./
+
+RUN pip install -r  requirements.txt
+
+COPY  ./test_app/report_service.py ./test_app/*_pb2*.py ./
+
+CMD ["python", "report_service.py"]

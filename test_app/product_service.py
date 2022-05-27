@@ -1,3 +1,4 @@
+import os
 import random
 import signal
 import json
@@ -7,6 +8,7 @@ import product_service_pb2
 import product_service_pb2_grpc
 from concurrent import futures
 
+NUMBER_OF_ITERATIONS = int(os.getenv("NUMBER_OF_ITERATIONS", 1000))
 
 class ProductServiceServer(product_service_pb2_grpc.ProductServiceServicer):
 
@@ -17,6 +19,10 @@ class ProductServiceServer(product_service_pb2_grpc.ProductServiceServicer):
     def GetProduct(self, request, context):
         response = product_service_pb2.Product(Name =random.choice(self.Products),
                                                Price=random.choice(self.Prices))
+        prod = 1
+        for i in range(NUMBER_OF_ITERATIONS):
+            prod *= i
+
         return response
 
 

@@ -104,7 +104,7 @@ def grpc_events(elastic_search_client):
         "query": {
             "range": {
                 "timestamp": {
-                    "gte" : "now-{}m".format(int(MINUTES)),
+                    "gte" : "now-{}m".format(int(2*MINUTES)),
                     "lte": "now"
                 }
             }
@@ -137,10 +137,10 @@ def grpc_events(elastic_search_client):
 
 
 def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
-    try:
-        elastic_search_client.indices.delete(index='grpc-dependencies')
-    except Exception as e:
-        print(f'error is {e}')
+    # try:
+    #     elastic_search_client.indices.delete(index='grpc-dependencies')
+    # except Exception as e:
+    #     print(f'error is {e}')
     query = {
         "size": 0,
         "aggs": {
@@ -305,19 +305,14 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
                         count = resp['aggregations']['number_of_calls']['value']
                         err_count = elastic_search_client.search(index='grpc-events', query=err_query_mathch, track_total_hits=True)['hits']['total']['value']
                         edge = {
-                            # "type" : "edge",
                             "id" : str(uuid.uuid4()),
-                            # "service_src"
                             "source" : out_host['key']+':'+out_script['key'].split('/')[-1],
-                            # "service_dest"
                             "target" : in_host['key']+':'+in_script['key'].split('/')[-1],
-
-                            # "detail_total_network_time" : resp['aggregations']['sum_network_time']['value'],
-                            "detail_total_client_time"  : resp['aggregations']['sum_client_time']['value'],
-                            # "detail_total_server_time"  : resp['aggregations']['sum_server_time']['value'],
+                            "network_time" : resp['aggregations']['sum_network_time']['value'],
+                            "total_client_time"  : resp['aggregations']['sum_client_time']['value'],
+                            "total_server_time"  : resp['aggregations']['sum_server_time']['value'],
                             "frequency"  : count/total_time if total_time > 0.00001 else 0.0,
-                            "error_rate" : err_count/total_time if total_time > 0.00001 else 0.0,
-                            # "detail_method"             : method['key'],
+                            # "error_rate" : err_count/total_time if total_time > 0.00001 else 0.0,
                             "timestamp"                 : datetime.datetime.utcnow()
                         }
                         elastic_search_client.index(index="grpc-dependencies", document=edge)
