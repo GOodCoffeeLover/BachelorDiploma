@@ -3,7 +3,7 @@ version: "3"
 services:
     rg_server:
         build:
-            dockerfile: Dockerfile_server
+            dockerfile: Dockerfile_rg_server
             context: .
         image: rg_server:1.0
         ports:
@@ -16,7 +16,7 @@ services:
 
     rg_client:
         build:
-            dockerfile: Dockerfile_client
+            dockerfile: Dockerfile_rg_client
             context: .
         image: rg_client:1.0
         environment:
