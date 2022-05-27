@@ -22,7 +22,7 @@ from concurrent import futures
 USER_SERVER_ADDRESS = os.getenv("USER_SERVER_ADDRESS", '[::]') + ':50061'
 PRODUCT_SERVER_ADDRESS = os.getenv("PRODUCT_SERVER_ADDRESS", '[::]') + ':50062'
 ORDER_SERVER_ADDRESS = os.getenv("ORDER_SERVER_ADDRESS", '[::]') + ':50063'
-NUMBER_OF_ITERATIONS = os.getenv("NUMBER_OF_ITERATIONS", 1000)
+NUMBER_OF_ITERATIONS = int(os.getenv("NUMBER_OF_ITERATIONS", 1000))
 
 class ReportServiceServer(report_service_pb2_grpc.ReportServiceServicer):
 
