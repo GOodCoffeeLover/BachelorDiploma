@@ -1,7 +1,10 @@
 import contextlib
+import datetime
 import random
 import os
 import time
+import numpy
+import datetime
 
 import grpc
 
@@ -30,10 +33,16 @@ def main():
         productStub = product_service_pb2_grpc.ProductServiceStub(product_chanel)
         orderStub = order_service_pb2_grpc.OrderServiceStub(order_chanel)
 
+        number_of_actions = 3
+        runs = [numpy.zeros(()) for _ in range(number_of_actions)]
+        action_names = ['GetUser', 'GetProduct', 'GetOrder']
+
         while True:
             action = random.randint(0, 2)
             item_id = random.randint(0, 128)
+
             try:
+                start = datetime.datetime.utcnow()
                 if action == 0:
                     print(f'Action is GetUser')
                     print(userStub.GetUser(user_service_pb2.UserId(Id=item_id)))
@@ -43,6 +52,13 @@ def main():
                 elif action == 2:
                     print(f'Action is GetOrder')
                     print(orderStub.GetOrder(order_service_pb2.OrderId(Id=item_id)))
+                end = datetime.datetime.utcnow()
+                total = (end - start).total_seconds() * 1000
+
+                runs[action] = numpy.append(runs[action], total)
+                for run, name in zip(runs, action_names):
+                    print(f'Action {name} take {run[run > 0].mean()} ms in average')
+
                 print('-'*20)
             except Exception as e:
                 print(f'error is {e}')
