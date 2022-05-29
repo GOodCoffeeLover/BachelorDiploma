@@ -80,6 +80,8 @@ services:
             dockerfile: Dockerfile_admin_dashboard
             context: .
         image: admin_dashboard:latest
+        deploy:
+            replicas: 1
         environment:
             - MDS_PLATFORM_ADDRESS=mds_platform_sink
             - USER_SERVER_ADDRESS=user_service
@@ -100,6 +102,8 @@ services:
             dockerfile: Dockerfile_buyer_dashboard
             context: .
         image: buyer_dashboard:latest
+        deploy:
+            replicas: 1
         environment:
             - MDS_PLATFORM_ADDRESS=mds_platform_sink
             - USER_SERVER_ADDRESS=user_service
@@ -121,6 +125,8 @@ services:
             dockerfile: Dockerfile_market_connector
             context: .
         image: market_connector:latest
+        deploy:
+            replicas: 1
         environment:
             - MDS_PLATFORM_ADDRESS=mds_platform_sink
             - PRODUCT_SERVER_ADDRESS=product_service
@@ -182,3 +188,7 @@ services:
         image: grafana/grafana
         ports:
             - "3000:3000"
+        user: '1000' # run id -u to get your user id
+        volumes:
+            -   './grafana-volume:/var/lib/grafana'
+

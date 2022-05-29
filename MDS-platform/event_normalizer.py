@@ -266,6 +266,21 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
                                     "field": "network_time"
                                 }
                             },
+                            "avg_client_time": {
+                                "avg": {
+                                    "field": "client_side_time"
+                                }
+                            },
+                            "avg_server_time": {
+                                "avg": {
+                                    "field": "server_side_time"
+                                }
+                            },
+                            "avg_network_time": {
+                                "avg": {
+                                    "field": "network_time"
+                                }
+                            },
                             "number_of_calls": {
                                 "value_count": {
                                     "field": "GUID.keyword"
@@ -296,9 +311,11 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
                                     "match" :{
                                         "status.keyword": "OK"
                                     }
-                                }, 
-                                range_queue
+                                }],
+                                "must" : [
+                                    range_queue
                                 ]
+
                             }
 
                         }
@@ -308,11 +325,14 @@ def make_dependency_graph(elastic_search_client : elasticsearch.Elasticsearch):
                             "id" : str(uuid.uuid4()),
                             "source" : out_host['key']+':'+out_script['key'].split('/')[-1],
                             "target" : in_host['key']+':'+in_script['key'].split('/')[-1],
-                            "network_time" : resp['aggregations']['sum_network_time']['value'],
+                            "total_network_time" : resp['aggregations']['sum_network_time']['value'],
                             "total_client_time"  : resp['aggregations']['sum_client_time']['value'],
                             "total_server_time"  : resp['aggregations']['sum_server_time']['value'],
+                            "avg_network_time" : resp['aggregations']['avg_network_time']['value'],
+                            "avg_client_time"  : resp['aggregations']['avg_client_time']['value'],
+                            "avg_server_time"  : resp['aggregations']['avg_server_time']['value'],
                             "frequency"  : count/total_time if total_time > 0.00001 else 0.0,
-                            # "error_rate" : err_count/total_time if total_time > 0.00001 else 0.0,
+                            "error_rate" : err_count/total_time if total_time > 0.00001 else 0.0,
                             "timestamp"                 : datetime.datetime.utcnow()
                         }
                         elastic_search_client.index(index="grpc-dependencies", document=edge)

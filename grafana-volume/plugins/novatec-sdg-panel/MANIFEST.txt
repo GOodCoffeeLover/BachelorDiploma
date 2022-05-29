@@ -1,0 +1,50 @@
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+{
+  "manifestVersion": "2.0.0",
+  "signatureType": "community",
+  "signedByOrg": "novatec",
+  "signedByOrgName": "Novatec Consulting GmbH",
+  "plugin": "novatec-sdg-panel",
+  "version": "4.0.3",
+  "time": 1630573046798,
+  "keyId": "7e4d0c6a708866e7",
+  "files": {
+    "assets/icons/balancer.png": "4661af707d06446bbb072f140eaf8b70cc032a60079bdf022fc6de2bb0ec0455",
+    "assets/icons/database.png": "1ad2f833fbf7ef3d6780d3d382dca40e01cd9f1ee10761c3cb000c9f0e9af4f6",
+    "assets/icons/default.png": "b6d0e6e83b84f227166f86209e5404c6b70d27444d3d68f6a92e03cc594216fa",
+    "assets/icons/ftp.png": "8326e294512c41dc3ab49584dc8a50fbc0011689c31ba945ab785d824f4e9289",
+    "assets/icons/http.png": "ce0e44b5628833354852250fce6c3fd49ac0ce5296a21cede4a94aad33f88c49",
+    "assets/icons/icon_index.json": "99a50e35902067446c2b2154e799d59453567bf5d5d93e7144eb171e493429be",
+    "assets/icons/java.png": "cef316c4100034e0b05ccb7d6b50e9fd6e71b65111bd8504068c59b301cdf767",
+    "assets/icons/ldap.png": "503357545853251d19f625941cead4df766f7b990e22e0c04a9a11855ce7058c",
+    "assets/icons/mainframe.png": "bab107e84794bc6e6850821c7a5f9d2ef77ea6842ee8dddcc9cb0e9e32088f6a",
+    "assets/icons/message.png": "d26f33d477ae18787f59cd5151e635d43f1cc2b4fa070fe184b984b3e2978f57",
+    "assets/icons/smtp.png": "f714071a2cf1c971b15d4c40879c15425ee5e8cd8a196d4758e78db9159b10dc",
+    "assets/icons/star_trek.png": "59e28e2969d6d0779c2aa07bfc08b0d8721398ec98a6cab6d14193fe788a9bb4",
+    "assets/icons/web.png": "eff5461e123ab9f535873cc49b9b6189ecec25ac4fd2067a6ba0b9d1746dca98",
+    "CHANGELOG.md": "3e4b53ca32cff2128a1ec74e7cae4b73cabb161bcda5e3b76eea152f39a28cc2",
+    "img/data-example-1.png": "532b81838bdf79807bdc9604bae662459f3dd435d514876567b33d9f8e2171ac",
+    "img/data-example-2.png": "59afc1c0712b7f21384ce25e86962a807d8c6072bb7ddc647590da7867eabe75",
+    "img/novatec_sdg_panel_logo.svg": "11bac65b8ef6cf99b729e135773edce69136d5c4cf942030f9ba31c1b2b8f167",
+    "img/service-icons.png": "dc256ef8c1f3ea78ecc7e33bec15da66968c38339b6996f0c4aa0122c3469901",
+    "LICENSE": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+    "module.js": "60afb1ce8e97051194ced23b43c2b59c76666d3c20149c3430bf7b8ba6840fb5",
+    "module.js.LICENSE.txt": "bfe99497b645f692f84473c4d1a898ac41db27bf4c1602067054876081a7fc38",
+    "module.js.map": "7a9ba1d9eb8183af1a0bac94732ffc7b26e89a0a86d3438dc799eaed6e1fe99f",
+    "plugin.json": "a3aea792fff2dda0d54af301781115975b22cb1b9d3c196e9b202ec910c8f018",
+    "README.md": "c8e7a4d7ec369edf832704a23053cd69e3c41b529004bdbccad10d7caef6de51"
+  }
+}
+-----BEGIN PGP SIGNATURE-----
+Version: OpenPGP.js v4.10.1
+Comment: https://openpgpjs.org
+
+wqEEARMKAAYFAmEwkfYACgkQfk0ManCIZue07AIJAUPSo2DvdUEHZ0u/n0vo
+H7xORTGePvezu2GzQl4ub7o1wObs167WynJ1i7ac5wS9sUI0GZHJeOYT4ouZ
+0+3QueW1AgY+v55UZ+Q2DsM9UZ6oymovRoILIsJF2YLuV3MSNe987sb9rHJ9
+J2bI8bfgMigA2Mg+5nEpsOMPnn3EZGZPM+AEOw==
+=ns9q
+-----END PGP SIGNATURE-----
