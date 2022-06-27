@@ -1,0 +1,17 @@
+FROM python
+
+RUN apt-get update -y && apt-get upgrade -y
+
+RUN ["mkdir", "/app"]
+
+WORKDIR /app
+
+COPY ./wait-for-it.sh .
+
+COPY ./MDS-platform/requirements.txt .
+
+RUN pip install -r  requirements.txt
+
+COPY ./MDS-platform/events_reciver_server.py .
+
+CMD ["python", "events_reciver_server.py"]

@@ -1,0 +1,15 @@
+FROM python
+
+RUN apt-get update -y && apt-get upgrade -y
+
+RUN ["mkdir", "/app"]
+
+WORKDIR /app
+
+COPY ./wait-for-it.sh ./requirements.txt ./test_app/grpc_tracer.py ./
+
+RUN pip install -r  requirements.txt
+
+COPY  ./test_app/admin_dashboard.py ./test_app/user_service_*.py ./test_app/report_service_*.py ./
+
+CMD ["python", "admin_dashboard.py"]

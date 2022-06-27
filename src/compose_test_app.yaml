@@ -1,0 +1,194 @@
+version: "3"
+
+services:
+    user_service:
+        build:
+            dockerfile: Dockerfile_user_service
+            context: .
+        image: user_service:latest
+        ports:
+            - "50061:50061"
+        environment:
+            - MDS_PLATFORM_ADDRESS=mds_platform_sink
+            - NUMBER_OF_ITERATIONS=1000
+        depends_on:
+            -   "mds_platform_sink"
+        command: ["./wait-for-it.sh", "-t", "0", "mds_platform_sink:8000", "--",
+                  "python", "user_service.py"]
+
+
+    product_service:
+        build:
+            dockerfile: Dockerfile_product_service
+            context: .
+        image: product_service:latest
+        ports:
+            - "50062:50062"
+        environment:
+            - MDS_PLATFORM_ADDRESS=mds_platform_sink
+            - NUMBER_OF_ITERATIONS=1000
+        depends_on:
+            -   "mds_platform_sink"
+        command: ["./wait-for-it.sh", "-t", "0", "mds_platform_sink:8000", "--",
+                  "python", "product_service.py"]
+
+    order_service:
+        build:
+            dockerfile: Dockerfile_order_service
+            context: .
+        image: order_service:latest
+        ports:
+            - "50063:50063"
+        environment:
+            - MDS_PLATFORM_ADDRESS=mds_platform_sink
+            - USER_SERVER_ADDRESS=user_service
+            - PRODUCT_SERVER_ADDRESS=product_service
+            - NUMBER_OF_ITERATIONS=1000
+        depends_on:
+            - "mds_platform_sink"
+            - "product_service"
+            - "user_service"
+        command: ["./wait-for-it.sh", "-t", "0", "mds_platform_sink:8000", "--",
+                  "./wait-for-it.sh", "-t", "0", "user_service:50061", "--",
+                  "./wait-for-it.sh", "-t", "0", "product_service:50062", "--",
+                  "python", "order_service.py"]
+
+    report_service:
+        build:
+            dockerfile: Dockerfile_report_service
+            context: .
+        image: report_service:latest
+        ports:
+            - "50064:50064"
+        environment:
+            - MDS_PLATFORM_ADDRESS=mds_platform_sink
+            - USER_SERVER_ADDRESS=user_service
+            - PRODUCT_SERVER_ADDRESS=product_service
+            - ORDER_SERVER_ADDRESS=order_service
+            - NUMBER_OF_ITERATIONS=1000
+        depends_on:
+            - "mds_platform_sink"
+            - "product_service"
+            - "user_service"
+            - "order_service"
+        command: ["./wait-for-it.sh", "-t", "0", "mds_platform_sink:8000", "--",
+                  "./wait-for-it.sh", "-t", "0", "order_service:50063", "--",
+                  "python", "report_service.py"]
+
+    admin_dashboard:
+        build:
+            dockerfile: Dockerfile_admin_dashboard
+            context: .
+        image: admin_dashboard:latest
+        deploy:
+            replicas: 1
+        environment:
+            - MDS_PLATFORM_ADDRESS=mds_platform_sink
+            - USER_SERVER_ADDRESS=user_service
+            - REPORT_SERVER_ADDRESS=report_service
+            - NUMBER_OF_ITERATIONS=1000
+#            - PRODUCT_SERVER_ADDRESS=product_service
+#            - ORDER_SERVER_ADDRESS=order_service
+        depends_on:
+            - "mds_platform_sink"
+            - "user_service"
+            - "report_service"
+        command: ["./wait-for-it.sh", "-t", "0", "mds_platform_sink:8000", "--",
+                  "./wait-for-it.sh", "-t", "0", "report_service:50064", "--",
+                  "python", "admin_dashboard.py"]
+
+    buyer_dashboard:
+        build:
+            dockerfile: Dockerfile_buyer_dashboard
+            context: .
+        image: buyer_dashboard:latest
+        deploy:
+            replicas: 1
+        environment:
+            - MDS_PLATFORM_ADDRESS=mds_platform_sink
+            - USER_SERVER_ADDRESS=user_service
+            - PRODUCT_SERVER_ADDRESS=product_service
+            - ORDER_SERVER_ADDRESS=order_service
+            - NUMBER_OF_ITERATIONS=1000
+#            - REPORT_SERVER_ADDRESS=report_service
+        depends_on:
+            - "mds_platform_sink"
+            - "user_service"
+            - "product_service"
+            - "order_service"
+        command: ["./wait-for-it.sh", "-t", "0", "mds_platform_sink:8000", "--",
+                  "./wait-for-it.sh", "-t", "0", "order_service:50063", "--",
+                  "python", "buyer_dashboard.py"]
+
+    market_connector:
+        build:
+            dockerfile: Dockerfile_market_connector
+            context: .
+        image: market_connector:latest
+        deploy:
+            replicas: 1
+        environment:
+            - MDS_PLATFORM_ADDRESS=mds_platform_sink
+            - PRODUCT_SERVER_ADDRESS=product_service
+            - NUMBER_OF_ITERATIONS=1000
+#            - USER_SERVER_ADDRESS=user_service
+#            - ORDER_SERVER_ADDRESS=order_service
+#            - REPORT_SERVER_ADDRESS=report_service
+        depends_on:
+            - "mds_platform_sink"
+            - "product_service"
+        command: ["./wait-for-it.sh", "-t", "0", "mds_platform_sink:8000", "--",
+                  "./wait-for-it.sh", "-t", "0", "product_service:50062", "--",
+                  "python", "market_connector.py"]
+
+    mds_platform_sink:
+        image: mds_sink:latest
+        build:
+            dockerfile: Dockerfile_mds_sink
+            context: .
+        ports:
+            - "8000:8000"
+        environment:
+            - ELASTICSEARCH_ADDRESS=elastic_search
+        depends_on:
+            - "elastic_search"
+        command: ["./wait-for-it.sh", "-t", "0", "elastic_search:9200", "--", "python", "events_reciver_server.py"]
+
+    mds_platform_normalizer:
+        image: mds_normalizer:latest
+        build:
+            dockerfile: Dockerfile_mds_normalizer
+            context: .
+        environment:
+            - ELASTICSEARCH_ADDRESS=elastic_search
+            - TIMER_IN_MINUTES=1
+        depends_on:
+            -   "elastic_search"
+        command: ["./wait-for-it.sh", "-t", "0", "elastic_search:9200", "--", "python", "event_normalizer.py"]
+
+    elastic_search:
+        image: elasticsearch:8.2.0
+        ports:
+            - "9200:9200"
+        environment:
+            - http.host=0.0.0.0
+            - transport.host=127.0.0.1
+            - xpack.security.enabled=false
+        healthcheck:
+            test: [ "CMD", "curl", "-f", "http://0.0.0.0:9200" ]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+
+    kibana:
+        image: kibana:8.2.0
+        ports:
+            - "5601:5601"
+    grafana:
+        image: grafana/grafana
+        ports:
+            - "3000:3000"
+        user: '1000' # run id -u to get your user id
+        volumes:
+            -   './grafana-volume:/var/lib/grafana'
+
